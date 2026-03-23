@@ -21,7 +21,7 @@ export default function LoginPage() {
     {
       label: "The Problem",
       title: <>STOP<br/>JUGGLING<br/><span className="text-outline-variant opacity-40">TABS</span></>,
-      description: "20+ browser tabs, buried Google Drive files, and scattered todos. Kern brings everything into one clean dark workspace."
+      description: "20+ browser tabs, buried Google Drive files, and scattered todos. Anchor19 brings everything into one clean dark workspace."
     },
     {
       label: "The Workflow",
@@ -49,7 +49,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background text-foreground font-body selection:bg-primary selection:text-primary-foreground flex flex-col overflow-hidden relative">
       {/* TopNavBar */}
       <nav className="flex justify-between items-center w-full px-12 py-8 z-50 bg-transparent font-sans tracking-tighter uppercase text-sm fixed top-0">
-        <div className="text-2xl font-bold tracking-[-0.05em] text-foreground">KERN</div>
+        <div className="text-2xl font-bold tracking-[-0.05em] text-foreground">ANCHOR19</div>
       </nav>
 
       {/* Main Content: Login Shell */}
@@ -75,7 +75,7 @@ export default function LoginPage() {
                 <span className="text-primary font-sans font-bold tracking-[0.2em] text-xs uppercase">
                   {slides[currentSlide].label}
                 </span>
-                <h1 className="font-sans text-[8.5rem] font-black text-foreground kern-headline leading-[0.8] mb-4">
+                <h1 className="font-sans text-[8.5rem] font-black text-foreground anchor-headline leading-[0.8] mb-4">
                   {slides[currentSlide].title}
                 </h1>
                 <p className="max-w-md text-outline leading-relaxed text-xl">

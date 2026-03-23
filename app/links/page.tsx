@@ -31,6 +31,9 @@ import { db } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { useContextMenu } from "@/context/ContextMenuContext";
 import { Copy as CopyIcon } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
+import { useLinking } from "@/context/LinkingContext";
+import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 
 export default function LinksPage() {
   const { user, loading } = useAuth();
@@ -47,6 +50,47 @@ export default function LinksPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [form, setForm] = useState({ title: "", url: "", category: "General", description: "", projectId: "" });
+  const { showToast } = useToast();
+  const { copyRef } = useLinking();
+  const [hoveredLink, setHoveredLink] = useState<any>(null);
+
+  const deleteLinkFunc = async (id: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/links`, id));
+      showToast("Resource Terminated", "error");
+    } catch (e) {
+      showToast("Termination Failure", "error");
+    }
+  };
+
+  const renameLink = async (link: any) => {
+    if (!user || !link) return;
+    const newTitle = prompt("Enter new resource identity:", link.title || "");
+    if (newTitle) {
+      try {
+        await updateDoc(doc(db, `users/${user.uid}/links`, link.id), { title: newTitle });
+        showToast("Identity Updated", "success");
+      } catch (e) {
+        showToast("Update Failure", "error");
+      }
+    }
+  };
+
+  useKeyboardActions({
+    onCopy: () => {
+      if (hoveredLink) {
+        copyRef({ id: hoveredLink.id, type: "link", title: hoveredLink.title });
+        showToast("Reference Copied to Clipboard", "success");
+      }
+    },
+    onRename: () => {
+      if (hoveredLink) renameLink(hoveredLink);
+    },
+    onDelete: () => {
+      if (hoveredLink) deleteLinkFunc(hoveredLink.id);
+    }
+  });
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -92,16 +136,20 @@ export default function LinksPage() {
 
     setForm({ title: "", url: "", category: "General", description: "", projectId: "" });
     setModalState({ isOpen: false, mode: "add" });
+    showToast(modalState.mode === "add" ? "Resource Initialized" : "Identity Updated", "success");
   };
 
   const togglePin = async (link: any) => {
     if (!user) return;
-    await updateDoc(doc(db, `users/${user.uid}/links`, link.id), { pinned: !link.pinned });
+    const newPinned = !link.pinned;
+    await updateDoc(doc(db, `users/${user.uid}/links`, link.id), { pinned: newPinned });
+    showToast(newPinned ? "Resource Pinned" : "Resource Unpinned", "info");
   };
 
   const deleteLink = async (id: string) => {
     if (!user) return;
     await deleteDoc(doc(db, `users/${user.uid}/links`, id));
+    showToast("Resource Terminated", "error");
   };
 
   const filteredLinks = links.filter(l => {
@@ -173,7 +221,9 @@ export default function LinksPage() {
               key={link.id} 
               link={link} 
               onTogglePin={() => togglePin(link)} 
-              onDelete={() => deleteLink(link.id)} 
+              onDelete={() => deleteLinkFunc(link.id)} 
+              onMouseEnter={() => setHoveredLink(link)}
+              onMouseLeave={() => setHoveredLink(null)}
               onEdit={() => {
                 setForm({ title: link.title, url: link.url, category: link.category || "General", description: link.description || "", projectId: link.projectId || "" });
                 setModalState({ isOpen: true, mode: "edit", link });
@@ -181,13 +231,20 @@ export default function LinksPage() {
               onContextMenu={(e) => {
                 e.preventDefault();
                 showMenu(e.clientX, e.clientY, [
-                  { label: "Copy Link", icon: <CopyIcon size={14} />, onClick: () => navigator.clipboard.writeText(link.url) },
+                  { label: "Copy Link", icon: <CopyIcon size={14} />, onClick: () => {
+                    navigator.clipboard.writeText(link.url);
+                    showToast("Link Copied", "success");
+                  } },
+                  { label: "Copy Reference to Project", icon: <TagIcon size={14} />, onClick: () => {
+                    copyRef({ id: link.id, type: "link", title: link.title });
+                    showToast("Reference Copied to Clipboard", "success");
+                  } },
                   { label: "Edit Resource", icon: <Edit2 size={14} />, onClick: () => {
                     setForm({ title: link.title, url: link.url, category: link.category || "General", description: link.description || "", projectId: link.projectId || "" });
                     setModalState({ isOpen: true, mode: "edit", link });
                   } },
                   { label: link.pinned ? "Unpin Reference" : "Pin Reference", icon: <Pin size={14} />, onClick: () => togglePin(link) },
-                  { label: "Delete Resource", icon: <Trash2 size={14} />, variant: "destructive", onClick: () => deleteLink(link.id) },
+                  { label: "Delete Resource", icon: <Trash2 size={14} />, variant: "destructive", onClick: () => deleteLinkFunc(link.id) },
                 ], link.title || "Link System");
               }}
             />
@@ -281,7 +338,7 @@ export default function LinksPage() {
   );
 }
 
-function LinkCard({ link, onTogglePin, onDelete, onEdit, onContextMenu }: { link: any, onTogglePin: () => void, onDelete: () => void, onEdit: () => void, onContextMenu: (e: React.MouseEvent) => void }) {
+function LinkCard({ link, onTogglePin, onDelete, onEdit, onContextMenu, onMouseEnter, onMouseLeave }: { link: any, onTogglePin: () => void, onDelete: () => void, onEdit: () => void, onContextMenu: (e: React.MouseEvent) => void, onMouseEnter?: () => void, onMouseLeave?: () => void }) {
   const faviconUrl = `https://www.google.com/s2/favicons?sz=64&domain=${new URL(link.url).hostname}`;
 
   return (
@@ -291,6 +348,8 @@ function LinkCard({ link, onTogglePin, onDelete, onEdit, onContextMenu }: { link
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       onContextMenu={onContextMenu}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className="bg-zinc-900/50 p-5 rounded-2xl border border-zinc-800 hover:border-zinc-700 hover:shadow-xl transition-all group flex flex-col gap-5 relative overflow-hidden cursor-context-menu"
     >
       <div className="flex items-center justify-between">

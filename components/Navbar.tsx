@@ -42,7 +42,7 @@ export default function Navbar() {
             <CommandIcon size={18} className="text-white group-hover:text-primary transition-colors" />
           </div>
           <div className="hidden lg:flex flex-col">
-            <span className="font-bold text-xl tracking-tight text-zinc-100 leading-none">Kern</span>
+            <span className="font-bold text-xl tracking-tight text-zinc-100 leading-none">Anchor19</span>
             <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-zinc-600 mt-1">Workspace</span>
           </div>
         </Link>

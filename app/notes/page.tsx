@@ -29,6 +29,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/context/ToastContext";
+import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 
 export default function NotesPage() {
   const { user, loading } = useAuth();
@@ -42,6 +44,30 @@ export default function NotesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   
   const [form, setForm] = useState({ content: "", projectTag: "" });
+  const { showToast } = useToast();
+  const [hoveredNote, setHoveredNote] = useState<any>(null);
+
+  const deleteNoteFunc = async (id: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/notes`, id));
+      showToast("Knowledge Purged", "error");
+    } catch (e) {
+      showToast("Purge Failure", "error");
+    }
+  };
+
+  useKeyboardActions({
+    onCopy: () => {
+      if (hoveredNote) {
+        navigator.clipboard.writeText(hoveredNote.content);
+        showToast("Knowledge Copied to Clipboard", "success");
+      }
+    },
+    onDelete: () => {
+      if (hoveredNote) deleteNoteFunc(hoveredNote.id);
+    }
+  });
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -76,11 +102,13 @@ export default function NotesPage() {
 
     setForm({ content: "", projectTag: "" });
     setModalState({ isOpen: false, mode: "add" });
+    showToast(modalState.mode === "add" ? "Thought Initialized" : "Document Updated", "success");
   };
 
   const deleteNote = async (id: string) => {
     if (!user) return;
     await deleteDoc(doc(db, `users/${user.uid}/notes`, id));
+    showToast("Knowledge Purged", "error");
   };
 
   const filteredNotes = notes.filter(note => 
@@ -132,11 +160,13 @@ export default function NotesPage() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
+              onMouseEnter={() => setHoveredNote(note)}
+              onMouseLeave={() => setHoveredNote(null)}
               onClick={() => {
                 setForm({ content: note.content, projectTag: note.projectTag || "" });
                 setModalState({ isOpen: true, mode: "edit", note });
               }}
-              className="bg-zinc-900/50 p-8 rounded-2xl border border-zinc-800 hover:border-zinc-700 hover:shadow-xl transition-all group flex flex-col min-h-[200px] cursor-pointer"
+              className="bg-zinc-900/50 p-8 rounded-2xl border border-zinc-800 hover:border-zinc-700 hover:shadow-xl transition-all group flex flex-col min-h-[200px] cursor-pointer relative"
             >
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-900">

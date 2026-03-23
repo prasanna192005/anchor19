@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/context/ToastContext";
+import { useLinking } from "@/context/LinkingContext";
+import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 import { 
   CheckSquare, 
   Link as LinkIcon, 
@@ -15,8 +18,14 @@ import {
   Search,
   HardDrive,
   Copy as CopyIcon,
+  Folder,
   Edit2,
-  Trash2
+  Trash2,
+  Table,
+  Database,
+  FileText,
+  Presentation,
+  FolderOpen
 } from "lucide-react";
 import { 
   collection, 
@@ -37,6 +46,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import LandingPage from "@/components/LandingPage";
+
+const typeStyles = {
+  Sheet: { color: "#16A34A", icon: Table, bg: "rgba(22, 163, 74, 0.1)" },
+  Form: { color: "#9333EA", icon: Database, bg: "rgba(147, 51, 234, 0.1)" },
+  Doc: { color: "#2563EB", icon: FileText, bg: "rgba(37, 99, 235, 0.1)" },
+  Slide: { color: "#EAB308", icon: Presentation, bg: "rgba(234, 179, 8, 0.1)" },
+  Folder: { color: "#71717a", icon: FolderOpen, bg: "rgba(113, 113, 122, 0.1)" },
+  Link: { color: "#4F46E5", icon: LinkIcon, bg: "rgba(79, 70, 229, 0.1)" },
+};
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -79,7 +97,7 @@ export default function Dashboard() {
       const linksQ = query(collection(db, `users/${user.uid}/links`), where("pinned", "==", true), limit(6));
       const unsubLinks = onSnapshot(linksQ, (s) => setPinnedLinks(s.docs.map(d => ({id: d.id, ...d.data()}))));
 
-      const notesQ = query(collection(db, `users/${user.uid}/notes`), orderBy("updatedAt", "desc"), limit(3));
+      const notesQ = query(collection(db, `users/${user.uid}/notes`), orderBy("updatedAt", "desc"), limit(2));
       const unsubNotes = onSnapshot(notesQ, (s) => setRecentNotes(s.docs.map(d => ({id: d.id, ...d.data()}))));
 
       const driveQ = query(collection(db, `users/${user.uid}/drive`), orderBy("createdAt", "desc"), limit(3));
@@ -88,6 +106,53 @@ export default function Dashboard() {
       return () => { unsubTodos(); unsubLinks(); unsubNotes(); unsubDrive(); };
     }
   }, [user]);
+
+  const { showToast } = useToast();
+  const { copyRef } = useLinking();
+  const [hoveredItem, setHoveredItem] = useState<any>(null);
+
+  const deleteResource = async (item: any) => {
+    if (!user || !item) return;
+    try {
+      const collectionName = 
+        item.type === "link" ? "links" : 
+        item.type === "drive" ? "drive" : 
+        item.type === "todo" ? "todos" : "notes";
+      await deleteDoc(doc(db, `users/${user.uid}/${collectionName}`, item.id));
+      showToast(`${item.type === "todo" ? "Objective" : "Resource"} Terminated`, "error");
+    } catch (e) {
+      showToast("Termination Failure", "error");
+    }
+  };
+
+  const renameResource = async (item: any) => {
+    if (!user || !item || item.type === "todo" || item.type === "note") return;
+    const newTitle = prompt(`Enter new identity for ${item.title}:`, item.title || "");
+    if (newTitle) {
+      try {
+        const collectionName = item.type === "link" ? "links" : "drive";
+        await updateDoc(doc(db, `users/${user.uid}/${collectionName}`, item.id), { title: newTitle });
+        showToast("Identity Updated", "success");
+      } catch (e) {
+        showToast("Update Failure", "error");
+      }
+    }
+  };
+
+  useKeyboardActions({
+    onCopy: () => {
+      if (hoveredItem && (hoveredItem.type === "link" || hoveredItem.type === "drive")) {
+        copyRef({ id: hoveredItem.id, type: hoveredItem.type, title: hoveredItem.title });
+        showToast("Reference Copied to Clipboard", "success");
+      }
+    },
+    onRename: () => {
+      if (hoveredItem) renameResource(hoveredItem);
+    },
+    onDelete: () => {
+      if (hoveredItem) deleteResource(hoveredItem);
+    }
+  });
 
   const handleQuickCapture = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,8 +166,10 @@ export default function Dashboard() {
         createdAt: serverTimestamp(),
       });
       setQuickInput("");
+      showToast("Objective Initialized", "success");
     } catch (e) {
       console.error(e);
+      showToast("System Failure", "error");
     } finally {
       setIsCapturing(false);
     }
@@ -111,6 +178,7 @@ export default function Dashboard() {
   const toggleTodoDone = async (todo: any) => {
     if (!user) return;
     await updateDoc(doc(db, `users/${user.uid}/todos`, todo.id), { status: "Done" });
+    showToast("Task Commited", "info");
   };
 
   if (loading || !user) return null;
@@ -138,8 +206,8 @@ export default function Dashboard() {
                   {user?.displayName?.split(" ")[0] || "User"}
                 </span>
               </h2>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mt-2 flex items-center gap-2 font-mono">
-                <span className="w-2 h-2 rounded-full bg-primary" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mt-2 flex items-center gap-2 font-mono">
+                <span className="w-2 h-2 rounded-full bg-primary shadow-glow" />
                 {todoStats.total > 0 ? `${todoStats.done} / ${todoStats.total} tasks_commited` : "no_tasks_scheduled"}
               </p>
             </div>
@@ -178,10 +246,10 @@ export default function Dashboard() {
           </div>
         </motion.form>
 
-        {/* Professional Bento Grid */}
+        {/* Triple Block 6-6 Symmetric Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 auto-rows-[130px] lg:auto-rows-[150px] gap-6">
           
-          {/* VAULT: Resource Links (Left Side) */}
+          {/* 1. PINNED RESOURCES (Vault Links) */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -189,36 +257,52 @@ export default function Dashboard() {
             className="lg:col-span-6 lg:row-span-1 glass-card rounded-3xl p-6 flex flex-col gap-4 border border-zinc-800/80 overflow-hidden"
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Pinned Resources</h2>
-              <span className="text-[10px] font-black tabular-nums text-accent">{pinnedLinks.length} items</span>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Pinned Resources</h2>
+              <span className="text-[10px] font-black tabular-nums text-accent bg-accent/10 px-2 py-0.5 rounded-full">{pinnedLinks.length} items</span>
             </div>
             <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
                {pinnedLinks.slice(0, 6).map((link, i) => (
                   <a 
                     key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+                    onMouseEnter={() => setHoveredItem({ ...link, type: "link" })}
+                    onMouseLeave={() => setHoveredItem(null)}
                     onContextMenu={(e) => {
                       e.preventDefault();
                       showMenu(e.clientX, e.clientY, [
-                        { label: "Copy Link", icon: <CopyIcon size={14} />, onClick: () => navigator.clipboard.writeText(link.url) },
+                        { label: "Rename Identity", icon: <Edit2 size={14} />, onClick: async () => {
+                           const newTitle = prompt("Enter new identity name:", link.title || "");
+                           if (newTitle && user) {
+                              await updateDoc(doc(db, `users/${user.uid}/links`, link.id), { title: newTitle });
+                              showToast("Identity Updated", "success");
+                           }
+                        } },
+                        { label: "Copy Link", icon: <CopyIcon size={14} />, onClick: () => {
+                           navigator.clipboard.writeText(link.url);
+                           showToast("Link Copied", "success");
+                        } },
+                        { label: "Copy Reference to Project", icon: <Folder size={14} />, onClick: () => {
+                           copyRef({ id: link.id, type: "link", title: link.title || "Untitled Link" });
+                           showToast("Reference Copied to Clipboard", "success");
+                        } },
                         { label: "Terminate Reference", icon: <Trash2 size={14} />, variant: "destructive", onClick: async () => {
-                           if (user) await deleteDoc(doc(db, `users/${user.uid}/links`, link.id));
+                           if (user) {
+                             await deleteDoc(doc(db, `users/${user.uid}/links`, link.id));
+                             showToast("Resource Terminated", "error");
+                           }
                         } },
                       ], link.title || "Vault Resource");
                     }}
                     className="glass-card rounded-xl p-3 flex flex-col items-center justify-center gap-2 border border-zinc-800/50 group overflow-hidden cursor-context-menu"
                   >
                      <div className="w-8 h-8 rounded-lg bg-zinc-950/50 border border-zinc-800/50 flex items-center justify-center">
-                        <img src={`https://www.google.com/s2/favicons?sz=64&domain=${new URL(link.url).hostname}`} alt="" className="w-4 h-4 opacity-60" />
+                        <img src={`https://www.google.com/s2/favicons?sz=64&domain=${new URL(link.url).hostname}`} alt="" className="w-4 h-4 opacity-80" />
                      </div>
                   </a>
                ))}
-               {!pinnedLinks.length && (
-                  <div className="col-span-full py-4 text-center text-[10px] font-bold uppercase tracking-widest text-zinc-800">No pinned items</div>
-               )}
             </div>
           </motion.div>
 
-          {/* TASKS Block (Right Side) */}
+          {/* TASKS Block (Right Side, Parallel to all 3 left blocks) */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -226,24 +310,24 @@ export default function Dashboard() {
             className="lg:col-span-6 lg:row-span-3 glass-card rounded-3xl p-8 flex flex-col gap-6 overflow-hidden border border-zinc-800/80"
           >
             <div className="flex items-center justify-between">
-                <div className="space-y-4 flex-1">
-                   <h2 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                     <Zap size={14} className="text-primary fill-primary" /> _active_tasks
+                 <div className="space-y-4 flex-1">
+                   <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
+                     <Zap size={14} className="text-primary fill-primary shadow-glow" /> _active_tasks
                    </h2>
                    <div className="flex items-center gap-6 max-w-sm">
-                      <div className="flex-1 h-3 rounded-full bg-zinc-950 overflow-hidden border border-zinc-900 shadow-inner">
+                      <div className="flex-1 h-3 rounded-full bg-zinc-950/50 overflow-hidden border border-zinc-900 shadow-inner">
                         <motion.div 
                           initial={{ width: 0 }}
                           animate={{ width: `${todoStats.total > 0 ? (todoStats.done / todoStats.total) * 100 : 0}%` }}
-                          className="h-full bg-primary" 
+                          className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]" 
                         />
                       </div>
-                     <span className="text-xs font-black tabular-nums text-white">
-                       {todoStats.done} / {todoStats.total}
+                     <span className="text-sm font-black tabular-nums text-white">
+                       {todoStats.done} <span className="text-zinc-600">/</span> {todoStats.total}
                      </span>
                    </div>
                 </div>
-                <Link href="/todos" className="w-14 h-14 rounded-2xl bg-foreground text-background flex items-center justify-center hover:scale-105 transition-all shadow-soft group">
+                <Link href="/todos" className="w-14 h-14 rounded-2xl bg-foreground text-background flex items-center justify-center hover:scale-105 transition-all shadow-glow group">
                    <Plus size={24} className="group-hover:text-primary transition-colors" />
                 </Link>
             </div>
@@ -260,9 +344,14 @@ export default function Dashboard() {
                      onContextMenu={(e) => {
                        e.preventDefault();
                        showMenu(e.clientX, e.clientY, [
-                         { label: todo.done ? "Mark Incomplete" : "Mark Completed", onClick: () => toggleTodoDone(todo) },
+                         { label: todo.done ? "Mark Incomplete" : "Mark Completed", onClick: () => {
+                            toggleTodoDone(todo);
+                         } },
                          { label: "Terminate Objective", icon: <Trash2 size={14} />, variant: "destructive", onClick: async () => {
-                            if (user) await deleteDoc(doc(db, `users/${user.uid}/todos`, todo.id));
+                            if (user) {
+                               await deleteDoc(doc(db, `users/${user.uid}/todos`, todo.id));
+                               showToast("Objective Terminated", "error");
+                            }
                          } },
                        ], todo.title || "Task Objective");
                      }}
@@ -271,15 +360,15 @@ export default function Dashboard() {
                       <div className="w-5 h-5 rounded-full border border-zinc-800 flex items-center justify-center group-hover/item:border-primary transition-all shrink-0">
                          <div className="w-1.5 h-1.5 rounded-full bg-transparent group-hover/item:bg-primary" />
                       </div>
-                      <span className="flex-1 text-base font-semibold text-zinc-400 group-hover/item:text-white transition-colors">{todo.title}</span>
+                      <span className="flex-1 text-base font-bold text-zinc-200 group-hover/item:text-white transition-colors">{todo.title}</span>
                       <div className="flex items-center gap-2">
                         <div className={cn(
                           "w-2 h-2 rounded-full",
-                          todo.priority === "High" ? "bg-red-500" :
-                          todo.priority === "Medium" ? "bg-secondary" :
-                          "bg-accent"
+                          todo.priority === "High" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
+                          todo.priority === "Medium" ? "bg-secondary shadow-[0_0_8px_rgba(var(--secondary-rgb),0.5)]" :
+                          "bg-accent shadow-[0_0_8px_rgba(var(--accent-rgb),0.5)]"
                         )} />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-outline group-hover/item:text-foreground transition-colors">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover/item:text-foreground transition-colors">
                           {todo.priority === "Low" ? "Chromatic" : todo.priority}
                         </span>
                       </div>
@@ -287,14 +376,13 @@ export default function Dashboard() {
                  ))
                ) : (
                  <div className="flex-1 flex flex-col items-center justify-center text-zinc-700 py-12">
-                   <CheckSquare size={48} className="opacity-10 mb-4" />
                    <p className="text-sm font-medium">All tasks completed.</p>
                  </div>
                )}
             </div>
           </motion.div>
 
-          {/* RECENT DRIVE FILES (Left Side, below Vault) */}
+          {/* 2. RECENT DRIVE (Left Side, Middle) */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -302,28 +390,56 @@ export default function Dashboard() {
             className="lg:col-span-6 lg:row-span-1 glass-card rounded-2xl p-6 flex flex-col gap-4 border border-zinc-800/80"
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Recent Drive</h2>
-              <Link href="/drive" className="text-[9px] font-black uppercase tracking-widest text-accent hover:underline">View All</Link>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Recent Drive</h2>
+              <Link href="/drive" className="text-[9px] font-black uppercase tracking-widest text-accent hover:text-white transition-colors">View System</Link>
             </div>
             <div className="space-y-2">
               {recentDrive.length > 0 ? recentDrive.map(file => (
                 <a 
                   key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" 
+                  onMouseEnter={() => setHoveredItem({ ...file, type: "drive" })}
+                  onMouseLeave={() => setHoveredItem(null)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     showMenu(e.clientX, e.clientY, [
-                      { label: "Copy File URL", icon: <CopyIcon size={14} />, onClick: () => navigator.clipboard.writeText(file.url) },
+                      { label: "Rename Record", icon: <Edit2 size={14} />, onClick: async () => {
+                         const newTitle = prompt("Enter new record name:", file.title || "");
+                         if (newTitle && user) {
+                            await updateDoc(doc(db, `users/${user.uid}/drive`, file.id), { title: newTitle });
+                            showToast("Record Updated", "success");
+                         }
+                      } },
+                      { label: "Copy File URL", icon: <CopyIcon size={14} />, onClick: () => {
+                         navigator.clipboard.writeText(file.url);
+                         showToast("Reference Copied", "success");
+                      } },
+                      { label: "Copy Reference to Project", icon: <Folder size={14} />, onClick: () => {
+                         copyRef({ id: file.id, type: "drive", title: file.title || "Untitled File" });
+                         showToast("Reference Copied to Clipboard", "success");
+                      } },
                       { label: "Terminate Reference", icon: <Trash2 size={14} />, variant: "destructive", onClick: async () => {
-                         if (user) await deleteDoc(doc(db, `users/${user.uid}/drive`, file.id));
+                         if (user) {
+                           await deleteDoc(doc(db, `users/${user.uid}/drive`, file.id));
+                           showToast("File Reference Removed", "error");
+                         }
                       } },
                     ], file.title || "Drive Resource");
                   }}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/20 transition-all group cursor-context-menu"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                    <HardDrive size={14} className="text-zinc-600 group-hover:text-zinc-400" />
+                  <div 
+                    className="w-8 h-8 rounded-lg border border-zinc-900 bg-zinc-950 flex items-center justify-center shrink-0"
+                    style={{ 
+                      backgroundColor: (typeStyles[file.type as keyof typeof typeStyles] || typeStyles.Doc).bg,
+                      borderColor: `${(typeStyles[file.type as keyof typeof typeStyles] || typeStyles.Doc).color}22`
+                    }}
+                  >
+                    {React.createElement((typeStyles[file.type as keyof typeof typeStyles] || typeStyles.Doc).icon, { 
+                      size: 14, 
+                      style: { color: (typeStyles[file.type as keyof typeof typeStyles] || typeStyles.Doc).color } 
+                    })}
                   </div>
-                  <span className="text-xs font-medium text-zinc-400 group-hover:text-zinc-200 truncate flex-1">{file.title}</span>
+                  <span className="text-xs font-bold text-zinc-300 group-hover:text-white truncate flex-1 tracking-tight">{file.title}</span>
                 </a>
               )) : (
                 <div className="py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-800">No recent files</div>
@@ -331,40 +447,49 @@ export default function Dashboard() {
             </div>
           </motion.div>
           
-          {/* NOTES ARCHIVE (Bottom) */}
+          {/* 3. VAULT (Notes Archive, Left Side, Bottom) */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="lg:col-span-12 lg:row-span-1 glass-card rounded-3xl p-8 flex items-center gap-12 overflow-hidden border border-zinc-800/80"
+            className="lg:col-span-6 lg:row-span-1 glass-card rounded-3xl p-6 flex flex-col gap-4 border border-zinc-800/80 overflow-hidden"
           >
-            <div className="shrink-0">
-               <h2 className="text-[10px] font-bold uppercase tracking-widest text-zinc-700 mb-2 font-mono">Archive_Notes</h2>
-               <Link href="/notes" className="text-2xl font-bold text-foreground hover:text-secondary transition-colors flex items-center gap-2 group italic tracking-tight">
-                 Vault <ArrowUpRight size={20} className="text-outline group-hover:text-secondary transition-all" />
+            <div className="flex items-center justify-between">
+               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 font-mono">Archive_Notes</h2>
+               <Link href="/notes" className="text-[10px] font-black uppercase tracking-widest text-accent hover:underline flex items-center gap-1 group">
+                 Vault <ArrowUpRight size={12} className="group-hover:text-secondary transition-all" />
                </Link>
             </div>
             
-            <div className="flex-1 flex gap-6 overflow-x-auto custom-scrollbar-hidden">
+            <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar-hidden">
                {recentNotes.map((note) => (
                  <div 
                    key={note.id} 
                    onContextMenu={(e) => {
                      e.preventDefault();
                      showMenu(e.clientX, e.clientY, [
-                       { label: "Copy Objective", icon: <CopyIcon size={14} />, onClick: () => navigator.clipboard.writeText(note.content) },
+                       { label: "Copy Objective", icon: <CopyIcon size={14} />, onClick: () => {
+                          navigator.clipboard.writeText(note.content);
+                          showToast("Knowledge Copied", "success");
+                       } },
                        { label: "Terminate Knowledge", icon: <Trash2 size={14} />, variant: "destructive", onClick: async () => {
-                          if (user) await deleteDoc(doc(db, `users/${user.uid}/notes`, note.id));
+                          if (user) {
+                            await deleteDoc(doc(db, `users/${user.uid}/notes`, note.id));
+                            showToast("Knowledge Purged", "error");
+                          }
                        } },
                      ], "Knowledge Node");
                    }}
-                   className="flex-1 p-6 rounded-2xl bg-zinc-900/20 border border-zinc-800/50 hover:border-zinc-700 transition-all min-w-[280px] cursor-context-menu"
+                   className="p-3 rounded-xl bg-zinc-900/20 border border-zinc-800/50 hover:border-zinc-700 transition-all cursor-context-menu"
                  >
-                    <p className="text-sm text-zinc-400 line-clamp-2 leading-relaxed">
+                    <p className="text-[11px] font-bold text-zinc-400 line-clamp-1 group-hover:text-white">
                        {note.content}
                     </p>
                  </div>
                ))}
+               {!recentNotes.length && (
+                  <div className="py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-800">No recent notes</div>
+               )}
             </div>
           </motion.div>
 

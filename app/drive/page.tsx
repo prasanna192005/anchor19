@@ -34,14 +34,17 @@ import {
 import { db } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { useContextMenu } from "@/context/ContextMenuContext";
+import { useToast } from "@/context/ToastContext";
+import { useLinking } from "@/context/LinkingContext";
+import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 
 const typeStyles = {
-  Sheet: { color: "#16A34A", icon: Table },
-  Form: { color: "#9333EA", icon: Database },
-  Doc: { color: "#2563EB", icon: FileText },
-  Slide: { color: "#EAB308", icon: Presentation },
-  Folder: { color: "#7A7A72", icon: FolderOpen },
-  Link: { color: "#4F46E5", icon: LinkIconAlt },
+  Sheet: { color: "#16A34A", icon: Table, bg: "rgba(22, 163, 74, 0.1)" },
+  Form: { color: "#9333EA", icon: Database, bg: "rgba(147, 51, 234, 0.1)" },
+  Doc: { color: "#2563EB", icon: FileText, bg: "rgba(37, 99, 235, 0.1)" },
+  Slide: { color: "#EAB308", icon: Presentation, bg: "rgba(234, 179, 8, 0.1)" },
+  Folder: { color: "#71717a", icon: FolderOpen, bg: "rgba(113, 113, 122, 0.1)" },
+  Link: { color: "#4F46E5", icon: LinkIconAlt, bg: "rgba(79, 70, 229, 0.1)" },
 };
 
 export default function DrivePage() {
@@ -57,6 +60,47 @@ export default function DrivePage() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { showToast } = useToast();
+  const { copyRef } = useLinking();
+  const [hoveredFile, setHoveredFile] = useState<any>(null);
+
+  const deleteFileFunc = async (id: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/drive`, id));
+      showToast("Resource Terminated", "error");
+    } catch (e) {
+      showToast("Termination Failure", "error");
+    }
+  };
+
+  const renameFile = async (item: any) => {
+    if (!user || !item) return;
+    const newTitle = prompt("Enter new record identity:", item.title || "");
+    if (newTitle) {
+      try {
+        await updateDoc(doc(db, `users/${user.uid}/drive`, item.id), { title: newTitle });
+        showToast("Record Updated", "success");
+      } catch (e) {
+        showToast("Update Failure", "error");
+      }
+    }
+  };
+
+  useKeyboardActions({
+    onCopy: () => {
+      if (hoveredFile) {
+        copyRef({ id: hoveredFile.id, type: "drive", title: hoveredFile.title });
+        showToast("Reference Copied to Clipboard", "success");
+      }
+    },
+    onRename: () => {
+      if (hoveredFile) renameFile(hoveredFile);
+    },
+    onDelete: () => {
+      if (hoveredFile) deleteFileFunc(hoveredFile.id);
+    }
+  });
 
   const [form, setForm] = useState({ title: "", url: "", projectTag: "General", type: "Doc", notes: "", projectId: "" });
 
@@ -98,11 +142,13 @@ export default function DrivePage() {
 
     setForm({ title: "", url: "", projectTag: "General", type: "Doc", notes: "", projectId: "" });
     setModalState({ isOpen: false, mode: "add" });
+    showToast(modalState.mode === "add" ? "Resource Initialized" : "Metadata Updated", "success");
   };
 
   const copyToClipboard = (url: string, id: string) => {
     navigator.clipboard.writeText(url);
     setCopiedId(id);
+    showToast("URL Copied to Clipboard", "success");
     setTimeout(() => setCopiedId(null), 1500);
   };
 
@@ -185,7 +231,10 @@ export default function DrivePage() {
                         ], item.title || "Resource");
                       }}
                       className="flex items-center gap-6 px-8 py-5 hover:bg-zinc-900/40 transition-colors group cursor-context-menu"
+                      onMouseEnter={() => setHoveredFile(item)}
+                      onMouseLeave={() => setHoveredFile(null)}
                     >
+                       <TypeIcon type={item.type || "Doc"} />
                        <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-base text-zinc-100 truncate">{item.title}</h4>
                           {item.notes && <p className="text-xs text-zinc-500 mt-1">{item.notes}</p>}
@@ -221,7 +270,7 @@ export default function DrivePage() {
                           </button>
 
                           <button 
-                            onClick={() => deleteItem(item.id)}
+                            onClick={() => deleteFileFunc(item.id)}
                             className="p-2.5 rounded-lg hover:bg-red-500/10 text-zinc-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                           >
                              <Trash2 size={16} />
@@ -338,11 +387,16 @@ export default function DrivePage() {
 function TypeIcon({ type }: { type: string }) {
   const style = typeStyles[type as keyof typeof typeStyles] || typeStyles.Doc;
   const Icon = style.icon;
+  
   return (
     <div 
-      className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border border-zinc-900 bg-zinc-950 group-hover:border-primary transition-all duration-500 shadow-glow shadow-primary/5"
+      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-zinc-800 transition-all duration-300 group-hover:scale-110 shadow-lg"
+      style={{ 
+        backgroundColor: style.bg,
+        borderColor: `${style.color}33`
+      }}
     >
-      <Icon size={20} className="text-zinc-600 group-hover:text-primary transition-all" />
+      <Icon size={22} style={{ color: style.color }} />
     </div>
   );
 }

@@ -12,7 +12,8 @@ import {
   MoreVertical,
   Zap,
   CheckCircle2,
-  Clock
+  Clock,
+  Trash2
 } from "lucide-react";
 import { 
   collection, 
@@ -30,6 +31,8 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useContextMenu } from "@/context/ContextMenuContext";
 import { Edit2, ExternalLink } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
+import Link from "next/link";
 
 export default function ProjectsPage() {
   const { user, loading } = useAuth();
@@ -61,10 +64,17 @@ export default function ProjectsPage() {
     }
   }, [user]);
 
+  const { showToast } = useToast();
+
   const deleteProject = async (id: string) => {
     if (!user) return;
     if (confirm("Terminate project infrastructure? This action is irreversible.")) {
-      await deleteDoc(doc(db, `users/${user.uid}/projects`, id));
+      try {
+        await deleteDoc(doc(db, `users/${user.uid}/projects`, id));
+        showToast("Infrastructure Terminated", "error");
+      } catch (e) {
+        showToast("Termination Failure", "error");
+      }
     }
   };
 
@@ -78,8 +88,10 @@ export default function ProjectsPage() {
       });
       setNewProject({ name: "", description: "", tag: "Active" });
       setIsAdding(false);
+      showToast("System Construction Complete", "success");
     } catch (e) {
       console.error(e);
+      showToast("Construction Error", "error");
     }
   };
 
@@ -121,44 +133,55 @@ export default function ProjectsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="glass-card rounded-3xl p-8 border border-zinc-800/80 hover:border-zinc-700 transition-all group overflow-hidden relative"
+              onContextMenu={(e) => {
+                e.preventDefault();
+                showMenu(e.clientX, e.clientY, [
+                  { label: "Rename Project", icon: <Edit2 size={14} />, onClick: () => showToast("Renaming not yet implemented", "info") },
+                  { label: "Terminate System", icon: <Trash2 size={14} />, variant: "destructive", onClick: () => deleteProject(project.id) },
+                ], project.name);
+              }}
+              className="group"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[40px] -mr-16 -mt-16 group-hover:bg-primary/10 transition-all" />
-              
-              <div className="flex items-start justify-between mb-8">
-                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-primary transition-colors">
-                  <Folder size={20} />
-                </div>
-                <div className={cn(
-                  "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
-                  project.tag === "Active" ? "border-primary/20 text-primary bg-primary/5" : "border-zinc-800 text-zinc-600"
-                )}>
-                  {project.tag}
-                </div>
-              </div>
+              <Link href={`/projects/${project.id}`} className="block h-full">
+                <div className="glass-card rounded-3xl p-8 border border-zinc-800/80 hover:border-zinc-700 transition-all group-hover:bg-zinc-900/10 overflow-hidden relative h-full flex flex-col">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[40px] -mr-16 -mt-16 group-hover:bg-primary/10 transition-all" />
+                  
+                  <div className="flex items-start justify-between mb-8">
+                    <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-primary transition-colors">
+                      <Folder size={20} />
+                    </div>
+                    <div className={cn(
+                      "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                      project.tag === "Active" ? "border-primary/20 text-primary bg-primary/5" : "border-zinc-800 text-zinc-600"
+                    )}>
+                      {project.tag}
+                    </div>
+                  </div>
 
-              <h3 className="text-2xl font-bold text-white mb-2 tracking-tight group-hover:text-primary transition-colors">{project.name}</h3>
-              <p className="text-sm text-zinc-500 line-clamp-2 leading-relaxed mb-8">{project.description || "Experimental architecture and layout design for modular system."}</p>
+                  <h3 className="text-2xl font-bold text-white mb-2 tracking-tight group-hover:text-primary transition-colors">{project.name}</h3>
+                  <p className="text-sm text-zinc-500 line-clamp-2 leading-relaxed mb-8 flex-1">{project.description || "Experimental architecture and layout design for modular system."}</p>
 
-              <div className="pt-6 border-t border-zinc-900 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                   <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest">{totalResources}</span>
-                      <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">Resources</span>
-                   </div>
-                   <div className="w-px h-6 bg-zinc-900" />
-                   <div className="flex -space-x-2">
-                    {projectLinks.slice(0, 3).map((l, i) => (
-                      <div key={i} className="w-6 h-6 rounded-full border-2 border-background bg-zinc-800 flex items-center justify-center overflow-hidden">
-                        <img src={`https://www.google.com/s2/favicons?sz=64&domain=${new URL(l.url).hostname}`} alt="" className="w-3 h-3 grayscale" />
+                  <div className="pt-6 border-t border-zinc-900 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                       <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-white uppercase tracking-widest">{totalResources}</span>
+                          <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">Resources</span>
+                       </div>
+                       <div className="w-px h-6 bg-zinc-900" />
+                       <div className="flex -space-x-2">
+                        {projectLinks.slice(0, 3).map((l, i) => (
+                          <div key={i} className="w-6 h-6 rounded-full border-2 border-background bg-zinc-800 flex items-center justify-center overflow-hidden">
+                            <img src={`https://www.google.com/s2/favicons?sz=64&domain=${new URL(l.url).hostname}`} alt="" className="w-3 h-3 grayscale" />
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                    <div className="text-zinc-500 group-hover:text-white transition-colors">
+                      <ArrowUpRight size={18} />
+                    </div>
                   </div>
                 </div>
-                <button className="text-zinc-500 hover:text-white transition-colors">
-                  <ArrowUpRight size={18} />
-                </button>
-              </div>
+              </Link>
             </motion.div>
           );
         })}
@@ -198,7 +221,7 @@ export default function ProjectsPage() {
                 <input 
                   autoFocus
                   type="text"
-                  placeholder="Kern Dashboard..."
+                  placeholder="Anchor19 Dashboard..."
                   className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-4 text-white placeholder:text-zinc-800 outline-none focus:border-primary transition-all"
                   value={newProject.name}
                   onChange={e => setNewProject({...newProject, name: e.target.value})}

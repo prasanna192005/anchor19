@@ -51,7 +51,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background relative overflow-hidden bg-mesh font-body text-foreground selection:bg-primary/30">
       {/* TopNavBar */}
       <nav className="flex justify-between items-center w-full px-12 py-8 z-50 bg-transparent font-sans tracking-tighter uppercase text-sm fixed top-0">
-        <div className="text-2xl font-bold tracking-[-0.05em] text-foreground">KERN</div>
+        <div className="text-2xl font-bold tracking-[-0.05em] text-foreground">ANCHOR19</div>
         <div className="hidden md:flex items-center gap-12 text-outline">
           <a className="font-medium hover:text-foreground transition-all duration-300" href="#features">FEATURES</a>
           <a className="font-medium hover:text-foreground transition-all duration-300" href="#how-it-works">HOW IT WORKS</a>
@@ -84,7 +84,7 @@ export default function LandingPage() {
             <motion.h1 
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-[6rem] lg:text-[10rem] font-black tracking-tighter text-foreground leading-[0.85] mb-4 font-sans kern-headline"
+              className="text-[6rem] lg:text-[10rem] font-black tracking-tighter text-foreground leading-[0.85] mb-4 font-sans anchor-headline"
             >
               EVERYTHING<br/>
               YOU WORK WITH.<br/>
@@ -96,7 +96,7 @@ export default function LandingPage() {
               transition={{ delay: 0.3 }}
               className="text-xl lg:text-2xl font-medium text-outline max-w-2xl leading-relaxed"
             >
-              Kern is your personal command center — one place for every link, task, file, and thought. Built for people with too many tabs open.
+              Anchor19 is your personal command center — one place for every link, task, file, and thought. Built for people with too many tabs open.
             </motion.p>
           </div>
 
@@ -277,7 +277,7 @@ export default function LandingPage() {
       {/* CTA Footer */}
       <footer className="py-60 flex flex-col items-center justify-center gap-16 border-t border-zinc-900 bg-zinc-950 px-12 text-center">
          <div className="space-y-4">
-           <h2 className="text-5xl lg:text-[8rem] font-black tracking-tighter text-white leading-none">Stop juggling. <br/> Start using Kern.</h2>
+           <h2 className="text-5xl lg:text-[8rem] font-black tracking-tighter text-white leading-none">Stop juggling. <br/> Start using Anchor19.</h2>
            <p className="text-outline text-2xl font-medium tracking-tight mt-12">Get early access to the workspace that actually works.</p>
          </div>
          
@@ -292,14 +292,14 @@ export default function LandingPage() {
          <div className="pt-40 w-full flex flex-col md:flex-row justify-between items-center gap-12 text-[10px] font-black uppercase tracking-[0.5em] text-zinc-700">
            <div className="flex items-center gap-6">
              <CommandIcon size={24} />
-             <span>© 2024 KERN MONOLITH</span>
+             <span>© 2024 ANCHOR19 MONOLITH</span>
            </div>
            <div className="flex gap-12">
              <a href="#" className="hover:text-foreground">PRIVACY</a>
              <a href="#" className="hover:text-foreground">TERMS</a>
              <a href="#" className="hover:text-foreground">SECURITY</a>
            </div>
-           <div className="text-zinc-800">KERN_STABLE_v1.5.0</div>
+           <div className="text-zinc-800">ANCHOR19_STABLE_v1.5.0</div>
          </div>
       </footer>
     </div>

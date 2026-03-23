@@ -30,6 +30,9 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/context/ToastContext";
+import { useLinking } from "@/context/LinkingContext";
+import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 
 const priorityColors = {
   High: "bg-red-500/10 text-red-500 border-red-500/20",
@@ -40,6 +43,8 @@ const priorityColors = {
 export default function TodosPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
+  const { copyRef } = useLinking();
   
   const [todos, setTodos] = useState<any[]>([]);
   const [view, setView] = useState<"kanban" | "list">("kanban");
@@ -48,8 +53,47 @@ export default function TodosPage() {
     mode: "add",
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [hoveredTodo, setHoveredTodo] = useState<any>(null);
 
   const [form, setForm] = useState({ title: "", category: "Work", priority: "Medium", dueDate: "" });
+
+  const deleteTodoFunc = async (id: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/todos`, id));
+      showToast("Objective Terminated", "error");
+    } catch (e) {
+      showToast("Termination Failure", "error");
+    }
+  };
+
+  const renameTodo = async (todo: any) => {
+    if (!user || !todo) return;
+    const newTitle = prompt("Re-initialize objective ID:", todo.title || "");
+    if (newTitle) {
+      try {
+        await updateDoc(doc(db, `users/${user.uid}/todos`, todo.id), { title: newTitle });
+        showToast("Objective Identity Updated", "success");
+      } catch (e) {
+        showToast("Update Failure", "error");
+      }
+    }
+  };
+
+  useKeyboardActions({
+    onCopy: () => {
+       if (hoveredTodo) {
+         copyRef({ id: hoveredTodo.id, type: "link", title: hoveredTodo.title }); // Reusing link type for simplicity or I should add 'todo'
+         showToast("Objective Reference Copied", "success");
+       }
+    },
+    onRename: () => {
+       if (hoveredTodo) renameTodo(hoveredTodo);
+    },
+    onDelete: () => {
+       if (hoveredTodo) deleteTodoFunc(hoveredTodo.id);
+    }
+  });
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -84,12 +128,14 @@ export default function TodosPage() {
 
     setForm({ title: "", category: "Work", priority: "Medium", dueDate: "" });
     setModalState({ isOpen: false, mode: "add" });
+    showToast(modalState.mode === "add" ? "Objective Initialized" : "Identity Updated", "success");
   };
 
   const toggleStatus = async (todo: any) => {
     if (!user) return;
     const nextStatus = todo.status === "Done" ? "Todo" : "Done";
     await updateDoc(doc(db, `users/${user.uid}/todos`, todo.id), { status: nextStatus });
+    showToast(nextStatus === "Done" ? "Task Commited" : "Task Re-initialized", "info");
   };
 
   const updateTodoStatus = async (id: string, status: string) => {
@@ -178,7 +224,9 @@ export default function TodosPage() {
                       key={todo.id} 
                       todo={todo} 
                       onToggle={() => toggleStatus(todo)} 
-                      onDelete={() => deleteTodo(todo.id)} 
+                      onDelete={() => deleteTodoFunc(todo.id)} 
+                      onMouseEnter={() => setHoveredTodo(todo)}
+                      onMouseLeave={() => setHoveredTodo(null)}
                       onEdit={() => {
                         setForm({ title: todo.title, category: todo.category || "Work", priority: todo.priority || "Medium", dueDate: todo.dueDate || "" });
                         setModalState({ isOpen: true, mode: "edit", todo });
@@ -208,7 +256,9 @@ export default function TodosPage() {
                   key={todo.id} 
                   todo={todo} 
                   onToggle={() => toggleStatus(todo)} 
-                  onDelete={() => deleteTodo(todo.id)} 
+                  onDelete={() => deleteTodoFunc(todo.id)} 
+                  onMouseEnter={() => setHoveredTodo(todo)}
+                  onMouseLeave={() => setHoveredTodo(null)}
                   onEdit={() => {
                     setForm({ title: todo.title, category: todo.category || "Work", priority: todo.priority || "Medium", dueDate: todo.dueDate || "" });
                     setModalState({ isOpen: true, mode: "edit", todo });
@@ -310,7 +360,7 @@ export default function TodosPage() {
   );
 }
 
-function TodoCard({ todo, onToggle, onDelete, onEdit, onStatusChange }: { todo: any, onToggle: () => void, onDelete: () => void, onEdit: () => void, onStatusChange: (status: string) => void }) {
+function TodoCard({ todo, onToggle, onDelete, onEdit, onStatusChange, onMouseEnter, onMouseLeave }: { todo: any, onToggle: () => void, onDelete: () => void, onEdit: () => void, onStatusChange: (status: string) => void, onMouseEnter?: () => void, onMouseLeave?: () => void }) {
   const isDone = todo.status === "Done";
   
   return (
@@ -332,6 +382,8 @@ function TodoCard({ todo, onToggle, onDelete, onEdit, onStatusChange }: { todo: 
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       whileDrag={{ scale: 1.05, zIndex: 50, cursor: "grabbing" }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className="bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800 hover:border-zinc-700 transition-all group cursor-grab active:cursor-grabbing"
     >
       <div className="flex items-start gap-4">
@@ -384,7 +436,7 @@ function TodoCard({ todo, onToggle, onDelete, onEdit, onStatusChange }: { todo: 
   );
 }
 
-function TodoRow({ todo, onToggle, onDelete, onEdit }: { todo: any, onToggle: () => void, onDelete: () => void, onEdit: () => void }) {
+function TodoRow({ todo, onToggle, onDelete, onEdit, onMouseEnter, onMouseLeave }: { todo: any, onToggle: () => void, onDelete: () => void, onEdit: () => void, onMouseEnter?: () => void, onMouseLeave?: () => void }) {
   const isDone = todo.status === "Done";
   
   return (
@@ -393,6 +445,8 @@ function TodoRow({ todo, onToggle, onDelete, onEdit }: { todo: any, onToggle: ()
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className="flex items-center gap-6 px-8 py-5 hover:bg-zinc-900/40 transition-colors group"
     >
       <button 

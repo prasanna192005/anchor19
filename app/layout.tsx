@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { ContextMenuProvider } from "@/context/ContextMenuContext";
 import { ContextMenu } from "@/components/ContextMenu";
 import LayoutWrapper from "@/components/LayoutWrapper";
+import { ToastProvider } from "@/context/ToastContext";
+import { LinkingProvider } from "@/context/LinkingContext";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -18,7 +20,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Kern | tight, organized, nothing wasted",
+  title: "Anchor19 | keeps everything grounded",
   description: "A minimalist, high-performance workspace for your links, tasks, and notes.",
 };
 
@@ -32,12 +34,16 @@ export default function RootLayout({
       <body className="font-sans min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-x-hidden">
         <ThemeProvider>
           <AuthProvider>
-            <ContextMenuProvider>
-              <LayoutWrapper>
-                {children}
-              </LayoutWrapper>
-              <ContextMenu />
-            </ContextMenuProvider>
+            <ToastProvider>
+              <LinkingProvider>
+                <ContextMenuProvider>
+                  <LayoutWrapper>
+                    {children}
+                  </LayoutWrapper>
+                  <ContextMenu />
+                </ContextMenuProvider>
+              </LinkingProvider>
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
