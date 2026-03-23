@@ -78,6 +78,16 @@ export default function Navbar() {
         })}
       </div>
 
+      {/* Global Shortcut Entry Point */}
+      <div className="hidden lg:flex flex-col gap-4 px-10 mb-8 mt-4">
+        <div className="flex items-center gap-4 text-zinc-700 hover:text-zinc-500 transition-colors cursor-default">
+           <div className="flex gap-1.5 shrink-0">
+              <kbd className="px-1.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-500 font-mono select-none">⌘K</kbd>
+           </div>
+           <span className="text-[10px] font-bold uppercase tracking-[0.2em] leading-tight select-none">Universal_Search</span>
+        </div>
+      </div>
+
       {/* User / Authentication Cluster */}
       <div className="mt-auto px-4 py-8 border-t border-zinc-900/50">
         <div className="px-2 flex items-center gap-4 group cursor-pointer" onClick={logOut}>

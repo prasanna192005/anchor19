@@ -8,6 +8,7 @@ import { ContextMenu } from "@/components/ContextMenu";
 import LayoutWrapper from "@/components/LayoutWrapper";
 import { ToastProvider } from "@/context/ToastContext";
 import { LinkingProvider } from "@/context/LinkingContext";
+import CommandPalette from "@/components/CommandPalette";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -31,6 +32,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable} h-full antialiased`}>
+      <head>
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
+      </head>
       <body className="font-sans min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-x-hidden">
         <ThemeProvider>
           <AuthProvider>
@@ -41,6 +45,7 @@ export default function RootLayout({
                     {children}
                   </LayoutWrapper>
                   <ContextMenu />
+                  <CommandPalette />
                 </ContextMenuProvider>
               </LinkingProvider>
             </ToastProvider>

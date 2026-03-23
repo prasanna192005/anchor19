@@ -13,20 +13,31 @@ import { auth } from "@/lib/firebase";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  gdriveToken: string | null;
   signInWithGoogle: () => Promise<void>;
+  signInWithGoogleDrive: () => void;
   logOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  gdriveToken: null,
   signInWithGoogle: async () => {},
+  signInWithGoogleDrive: () => {},
   logOut: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [gdriveToken, setGdriveToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check for existing token
+    const savedToken = sessionStorage.getItem("gdrive_token");
+    if (savedToken) setGdriveToken(savedToken);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -46,16 +57,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const signInWithGoogleDrive = () => {
+    if (typeof window === "undefined" || !(window as any).google) return;
+    
+    const client = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+      scope: "https://www.googleapis.com/auth/drive.metadata.readonly",
+      callback: (response: any) => {
+        if (response.access_token) {
+          setGdriveToken(response.access_token);
+          sessionStorage.setItem("gdrive_token", response.access_token);
+        }
+      },
+    });
+    client.requestAccessToken();
+  };
+
   const logOut = async () => {
     try {
       await signOut(auth);
+      setGdriveToken(null);
+      sessionStorage.removeItem("gdrive_token");
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, logOut }}>
+    <AuthContext.Provider value={{ user, loading, gdriveToken, signInWithGoogle, signInWithGoogleDrive, logOut }}>
       {children}
     </AuthContext.Provider>
   );
