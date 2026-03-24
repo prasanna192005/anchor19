@@ -592,6 +592,35 @@ export default function CommandPalette() {
                              "flex items-center gap-2 opacity-0 transition-all duration-200 group-hover:opacity-100", 
                              isSelected && "opacity-100"
                           )}>
+                             {item.source === "gdrive" && (
+                               <div className="flex items-center gap-2 mr-2">
+                                 <button
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     const mime = item.raw.mimeType;
+                                     let type = "Doc";
+                                     if (mime.includes("spreadsheet")) type = "Sheet";
+                                     else if (mime.includes("presentation")) type = "Slide";
+                                     else if (mime.includes("folder")) type = "Folder";
+                                     handleAction("drive", item.raw.webViewLink, { title: item.title, type });
+                                   }}
+                                   className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[9px] font-bold uppercase tracking-wider text-zinc-400 hover:text-white transition-all border border-zinc-700/50"
+                                   title="Add to Central Drive"
+                                 >
+                                   + Drive
+                                 </button>
+                                 <button
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleAction("link", item.raw.webViewLink);
+                                   }}
+                                   className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[9px] font-bold uppercase tracking-wider text-zinc-400 hover:text-white transition-all border border-zinc-700/50"
+                                   title="Save to Vault"
+                                 >
+                                   + Vault
+                                 </button>
+                               </div>
+                             )}
                              <ArrowRight size={14} className={cn("opacity-40", isSelected && "translate-x-1")} />
                           </div>
                         </div>
