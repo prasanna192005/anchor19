@@ -158,9 +158,21 @@ export default function CommandPalette() {
           await updateDoc(doc(db, `users/${user.uid}/${act.collection}`, act.docId), { [field]: act.newName, updatedAt: serverTimestamp() });
           showToast(`Renamed to "${act.newName}"`, "success"); break;
         }
-        case "move":
-          await updateDoc(doc(db, `users/${user.uid}/${act.collection}`, act.docId), { category: act.dest, updatedAt: serverTimestamp() });
+        case "move": {
+          // If destination is a known Project, set projectId + label field
+          // Otherwise just update the label field
+          const isDestProject = act.destCategory === "Projects";
+          const moveField = act.collection === "drive" ? "projectTag" : "category";
+          const update: Record<string, any> = { updatedAt: serverTimestamp() };
+          if (isDestProject && act.destId) {
+            update.projectId = act.destId;
+            update[moveField] = act.dest; // also set the label
+          } else {
+            update[moveField] = act.dest;
+          }
+          await updateDoc(doc(db, `users/${user.uid}/${act.collection}`, act.docId), update);
           showToast(`Moved to ${act.dest}`, "success"); break;
+        }
         case "import_vault":
           await addDoc(collection(db, `users/${user.uid}/links`), { title: act.title, url: act.url, category: "Imported", createdAt: serverTimestamp() });
           showToast("Imported to Vault", "success"); break;
@@ -296,8 +308,8 @@ export default function CommandPalette() {
         if (source) {
           smart.push({
             id: `mv-${source.id}`, type: "move", docId: source.id, collection: source.raw.collection,
-            dest: destLabel,
-            title: `Move "${source.title}" → ${destItem ? `@${destLabel}` : destLabel}`,
+            dest: destLabel, destId: destItem?.id, destCategory: destItem?.category,
+            title: `Move "${source.title}" → ${destItem?.category === "Projects" ? `📁 ${destLabel}` : destItem ? `@${destLabel}` : destLabel}`,
             icon: MoveRight, category: "Action"
           });
         }
@@ -493,7 +505,7 @@ export default function CommandPalette() {
                 {localPool.length > 0 && <span className="text-[9px] text-zinc-800 font-black uppercase">{localPool.length} synced</span>}
                 <Zap size={10} className="text-zinc-800" />
               </div>
-            </div>
+              </div>
           </motion.div>
         </div>
       )}
