@@ -27,7 +27,8 @@ import {
   Presentation,
   FolderOpen,
   Clock,
-  History
+  History,
+  Edit3
 } from "lucide-react";
 import { 
   collection, 
@@ -47,6 +48,7 @@ import { useContextMenu } from "@/context/ContextMenuContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+
 const typeStyles = {
   Sheet: { color: "#16A34A", icon: Table, bg: "rgba(22, 163, 74, 0.1)" },
   Form: { color: "#9333EA", icon: Database, bg: "rgba(147, 51, 234, 0.1)" },
@@ -70,6 +72,10 @@ export default function Dashboard() {
   const [quickInput, setQuickInput] = useState("");
   const [isCapturing, setIsCapturing] = useState(false);
 
+  // Inline Renaming State
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState("");
+
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
@@ -81,9 +87,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user) {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-
       const todosQ = query(collection(db, `users/${user.uid}/todos`), orderBy("createdAt", "desc"), limit(100));
       const unsubTodos = onSnapshot(todosQ, (s) => {
         const all = s.docs.map(d => ({id: d.id, ...(d.data() as any)}));
@@ -132,17 +135,23 @@ export default function Dashboard() {
     }
   };
 
-  const renameResource = async (item: any) => {
-    if (!user || !item || item.type === "todo" || item.type === "note") return;
-    const newTitle = prompt(`Enter new identity for ${item.title}:`, item.title || "");
-    if (newTitle) {
-      try {
-        const collectionName = item.type === "link" ? "links" : "drive";
-        await updateDoc(doc(db, `users/${user.uid}/${collectionName}`, item.id), { title: newTitle });
-        showToast("Identity Updated", "success");
-      } catch (e) {
-        showToast("Update Failure", "error");
-      }
+  const saveRenamedResource = async (id: string, type: "links" | "drive" | "todos" | "notes") => {
+    if (!user || !renamingValue.trim()) {
+      setRenamingId(null);
+      return;
+    }
+    try {
+      const docRef = doc(db, `users/${user.uid}/${type}`, id);
+      const updateKey = (type === "todos" || type === "notes") ? (type === "todos" ? "title" : "content") : "title";
+      await updateDoc(docRef, { 
+        [updateKey]: renamingValue.trim(),
+        updatedAt: serverTimestamp()
+      });
+      showToast("Identity Synchronized", "success");
+    } catch (error) {
+      showToast("Sync Failure", "error");
+    } finally {
+      setRenamingId(null);
     }
   };
 
@@ -154,7 +163,13 @@ export default function Dashboard() {
       }
     },
     onRename: () => {
-      if (hoveredItem) renameResource(hoveredItem);
+      if (hoveredItem) {
+        setRenamingId(hoveredItem.id);
+        const title = hoveredItem.type === "note" ? 
+          (hoveredItem.content?.split('\n')[0].replace(/^#+\s*/, '') || "") : 
+          (hoveredItem.title || hoveredItem.name || "");
+        setRenamingValue(title);
+      }
     },
     onDelete: () => {
       if (hoveredItem) deleteResource(hoveredItem);
@@ -269,20 +284,14 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
                {pinnedLinks.slice(0, 6).map((link, i) => (
-                  <a 
-                    key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+                  <div 
+                    key={link.id}
                     onMouseEnter={() => setHoveredItem({ ...link, type: "link" })}
                     onMouseLeave={() => setHoveredItem(null)}
                     onContextMenu={(e) => {
                       e.preventDefault();
                       showMenu(e.clientX, e.clientY, [
-                        { label: "Rename Identity", icon: <Edit2 size={14} />, onClick: async () => {
-                           const newTitle = prompt("Enter new identity name:", link.title || "");
-                           if (newTitle && user) {
-                              await updateDoc(doc(db, `users/${user.uid}/links`, link.id), { title: newTitle });
-                              showToast("Identity Updated", "success");
-                           }
-                        } },
+                        { label: "Rename In-Place", icon: <Edit3 size={14} />, onClick: () => { setRenamingId(link.id); setRenamingValue(link.title || ""); } },
                         { label: "Copy Link", icon: <CopyIcon size={14} />, onClick: () => {
                            navigator.clipboard.writeText(link.url);
                            showToast("Link Copied", "success");
@@ -291,20 +300,35 @@ export default function Dashboard() {
                            copyRef({ id: link.id, type: "link", title: link.title || "Untitled Link" });
                            showToast("Reference Copied to Clipboard", "success");
                         } },
-                        { label: "Terminate Reference", icon: <Trash2 size={14} />, variant: "destructive", onClick: async () => {
-                           if (user) {
-                             await deleteDoc(doc(db, `users/${user.uid}/links`, link.id));
-                             showToast("Resource Terminated", "error");
-                           }
-                        } },
+                        { label: "Terminate Reference", icon: <Trash2 size={14} />, variant: "destructive", onClick: () => deleteResource({ ...link, type: "link" }) },
                       ], link.title || "Vault Resource");
                     }}
-                    className="glass-card rounded-xl p-3 flex flex-col items-center justify-center gap-2 border border-zinc-800/50 group overflow-hidden cursor-context-menu"
+                    className="relative group/res cursor-context-menu"
                   >
-                     <div className="w-8 h-8 rounded-lg bg-zinc-950/50 border border-zinc-800/50 flex items-center justify-center">
-                        <img src={`https://www.google.com/s2/favicons?sz=64&domain=${new URL(link.url).hostname}`} alt="" className="w-4 h-4 opacity-80" />
-                     </div>
-                  </a>
+                     {renamingId === link.id ? (
+                        <input 
+                          autoFocus
+                          className="w-full bg-zinc-950 border border-primary/50 rounded-xl px-2 py-1 text-[10px] font-bold text-white outline-none"
+                          value={renamingValue}
+                          onChange={(e) => setRenamingValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveRenamedResource(link.id, "links");
+                            if (e.key === "Escape") setRenamingId(null);
+                          }}
+                          onBlur={() => saveRenamedResource(link.id, "links")}
+                        />
+                     ) : (
+                        <a 
+                          href={link.url} target="_blank" rel="noopener noreferrer"
+                          className="glass-card rounded-xl p-3 flex flex-col items-center justify-center gap-2 border border-zinc-800/50 group/link overflow-hidden transition-all hover:border-primary/30"
+                        >
+                           <div className="w-8 h-8 rounded-lg bg-zinc-950/50 border border-zinc-800/50 flex items-center justify-center">
+                              <img src={`https://www.google.com/s2/favicons?sz=64&domain=${new URL(link.url).hostname}`} alt="" className="w-4 h-4 opacity-80" />
+                           </div>
+                           <span className="text-[8px] font-bold text-zinc-500 truncate w-full text-center group-hover/link:text-white transition-colors">{link.title}</span>
+                        </a>
+                     )}
+                  </div>
                ))}
             </div>
           </motion.div>
@@ -347,27 +371,39 @@ export default function Dashboard() {
                      initial={{ opacity: 0, x: -10 }}
                      animate={{ opacity: 1, x: 0 }}
                      transition={{ delay: 0.2 + i * 0.05 }}
-                     onClick={() => toggleTodoDone(todo)}
+                     onMouseEnter={() => setHoveredItem({ ...todo, type: "todo" })}
+                     onMouseLeave={() => setHoveredItem(null)}
                      onContextMenu={(e) => {
                        e.preventDefault();
                        showMenu(e.clientX, e.clientY, [
-                         { label: todo.done ? "Mark Incomplete" : "Mark Completed", onClick: () => {
-                            toggleTodoDone(todo);
-                         } },
-                         { label: "Terminate Objective", icon: <Trash2 size={14} />, variant: "destructive", onClick: async () => {
-                            if (user) {
-                               await deleteDoc(doc(db, `users/${user.uid}/todos`, todo.id));
-                               showToast("Objective Terminated", "error");
-                            }
-                         } },
+                         { label: "Rename Objective", icon: <Edit3 size={14} />, onClick: () => { setRenamingId(todo.id); setRenamingValue(todo.title || ""); } },
+                         { label: todo.status === "Done" ? "Mark Incomplete" : "Mark Completed", onClick: () => toggleTodoDone(todo) },
+                         { label: "Terminate Objective", icon: <Trash2 size={14} />, variant: "destructive", onClick: () => deleteResource({ ...todo, type: "todo" }) },
                        ], todo.title || "Task Objective");
                      }}
                      className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/10 border border-zinc-800/30 hover:bg-zinc-800/20 hover:border-zinc-700/50 transition-all cursor-pointer group/item cursor-context-menu"
                    >
-                      <div className="w-5 h-5 rounded-full border border-zinc-800 flex items-center justify-center group-hover/item:border-primary transition-all shrink-0">
+                      <div className="w-5 h-5 rounded-full border border-zinc-800 flex items-center justify-center group-hover/item:border-primary transition-all shrink-0" onClick={(e) => { e.stopPropagation(); toggleTodoDone(todo); }}>
                          <div className="w-1.5 h-1.5 rounded-full bg-transparent group-hover/item:bg-primary" />
                       </div>
-                      <span className="flex-1 text-base font-bold text-zinc-200 group-hover/item:text-white transition-colors">{todo.title}</span>
+                      
+                      {renamingId === todo.id ? (
+                        <input 
+                          autoFocus
+                          className="flex-1 bg-zinc-950 border border-primary/50 rounded-xl px-3 py-1 text-base font-bold text-white outline-none"
+                          value={renamingValue}
+                          onChange={(e) => setRenamingValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveRenamedResource(todo.id, "todos");
+                            if (e.key === "Escape") setRenamingId(null);
+                          }}
+                          onBlur={() => saveRenamedResource(todo.id, "todos")}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <span className="flex-1 text-base font-bold text-zinc-200 group-hover/item:text-white transition-colors" onClick={() => { setRenamingId(todo.id); setRenamingValue(todo.title || ""); }}>{todo.title}</span>
+                      )}
+
                       <div className="flex items-center gap-2">
                         <div className={cn(
                           "w-2 h-2 rounded-full",
@@ -402,20 +438,14 @@ export default function Dashboard() {
             </div>
             <div className="space-y-2">
               {recentDrive.length > 0 ? recentDrive.map(file => (
-                <a 
-                  key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" 
+                <div 
+                  key={file.id} 
                   onMouseEnter={() => setHoveredItem({ ...file, type: "drive" })}
                   onMouseLeave={() => setHoveredItem(null)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     showMenu(e.clientX, e.clientY, [
-                      { label: "Rename Record", icon: <Edit2 size={14} />, onClick: async () => {
-                         const newTitle = prompt("Enter new record name:", file.title || "");
-                         if (newTitle && user) {
-                            await updateDoc(doc(db, `users/${user.uid}/drive`, file.id), { title: newTitle });
-                            showToast("Record Updated", "success");
-                         }
-                      } },
+                      { label: "Rename Object", icon: <Edit3 size={14} />, onClick: () => { setRenamingId(file.id); setRenamingValue(file.title || file.name || ""); } },
                       { label: "Copy File URL", icon: <CopyIcon size={14} />, onClick: () => {
                          navigator.clipboard.writeText(file.url);
                          showToast("Reference Copied", "success");
@@ -424,13 +454,8 @@ export default function Dashboard() {
                          copyRef({ id: file.id, type: "drive", title: file.title || "Untitled File" });
                          showToast("Reference Copied to Clipboard", "success");
                       } },
-                      { label: "Terminate Reference", icon: <Trash2 size={14} />, variant: "destructive", onClick: async () => {
-                         if (user) {
-                           await deleteDoc(doc(db, `users/${user.uid}/drive`, file.id));
-                           showToast("File Reference Removed", "error");
-                         }
-                      } },
-                    ], file.title || "Drive Resource");
+                      { label: "Terminate Reference", icon: <Trash2 size={14} />, variant: "destructive", onClick: () => deleteResource({ ...file, type: "drive" }) },
+                    ], file.title || file.name || "Drive Resource");
                   }}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/20 transition-all group cursor-context-menu"
                 >
@@ -446,8 +471,28 @@ export default function Dashboard() {
                       style: { color: (typeStyles[file.type as keyof typeof typeStyles] || typeStyles.Doc).color } 
                     })}
                   </div>
-                  <span className="text-xs font-bold text-zinc-300 group-hover:text-white truncate flex-1 tracking-tight">{file.title}</span>
-                </a>
+                  
+                  {renamingId === file.id ? (
+                     <input 
+                       autoFocus
+                       className="flex-1 bg-zinc-950 border border-primary/50 rounded-lg px-2 py-1 text-xs font-bold text-white outline-none"
+                       value={renamingValue}
+                       onChange={(e) => setRenamingValue(e.target.value)}
+                       onKeyDown={(e) => {
+                         if (e.key === "Enter") saveRenamedResource(file.id, "drive");
+                         if (e.key === "Escape") setRenamingId(null);
+                       }}
+                       onBlur={() => saveRenamedResource(file.id, "drive")}
+                     />
+                  ) : (
+                    <span 
+                      className="text-xs font-bold text-zinc-300 group-hover:text-white truncate flex-1 tracking-tight"
+                      onClick={() => { setRenamingId(file.id); setRenamingValue(file.title || file.name || ""); }}
+                    >
+                      {file.title || file.name}
+                    </span>
+                  )}
+                </div>
               )) : (
                 <div className="py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-800">No recent files</div>
               )}
@@ -472,26 +517,41 @@ export default function Dashboard() {
                {recentNotes.map((note) => (
                  <div 
                    key={note.id} 
+                   onMouseEnter={() => setHoveredItem({ ...note, type: "note" })}
+                   onMouseLeave={() => setHoveredItem(null)}
                    onContextMenu={(e) => {
                      e.preventDefault();
                      showMenu(e.clientX, e.clientY, [
-                       { label: "Copy Objective", icon: <CopyIcon size={14} />, onClick: () => {
+                       { label: "Rename Note", icon: <Edit3 size={14} />, onClick: () => { setRenamingId(note.id); setRenamingValue(note.content?.split('\n')[0].replace(/^#+\s*/, '') || ""); } },
+                       { label: "Copy Content", icon: <CopyIcon size={14} />, onClick: () => {
                           navigator.clipboard.writeText(note.content);
                           showToast("Knowledge Copied", "success");
                        } },
-                       { label: "Terminate Knowledge", icon: <Trash2 size={14} />, variant: "destructive", onClick: async () => {
-                          if (user) {
-                            await deleteDoc(doc(db, `users/${user.uid}/notes`, note.id));
-                            showToast("Knowledge Purged", "error");
-                          }
-                       } },
+                       { label: "Terminate Knowledge", icon: <Trash2 size={14} />, variant: "destructive", onClick: () => deleteResource({ ...note, type: "note" }) },
                      ], "Knowledge Node");
                    }}
                    className="p-3 rounded-xl bg-zinc-900/20 border border-zinc-800/50 hover:border-zinc-700 transition-all cursor-context-menu"
                  >
-                    <p className="text-[11px] font-bold text-zinc-400 line-clamp-1 group-hover:text-white">
-                       {note.content}
-                    </p>
+                    {renamingId === note.id ? (
+                      <input 
+                        autoFocus
+                        className="w-full bg-zinc-950 border border-primary/50 rounded-lg px-2 py-1 text-[11px] font-bold text-white outline-none font-sans"
+                        value={renamingValue}
+                        onChange={(e) => setRenamingValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveRenamedResource(note.id, "notes");
+                          if (e.key === "Escape") setRenamingId(null);
+                        }}
+                        onBlur={() => saveRenamedResource(note.id, "notes")}
+                      />
+                    ) : (
+                      <p 
+                        className="text-[11px] font-bold text-zinc-400 line-clamp-1 group-hover:text-white"
+                        onClick={() => { setRenamingId(note.id); setRenamingValue(note.content?.split('\n')[0].replace(/^#+\s*/, '') || ""); }}
+                      >
+                         {note.content}
+                      </p>
+                    )}
                  </div>
                ))}
                {!recentNotes.length && (
@@ -512,22 +572,25 @@ export default function Dashboard() {
               <Link href="/history" className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline">View All</Link>
             </div>
             <div className="flex flex-col gap-2">
-              {recentHistory.length > 0 ? recentHistory.map(item => (
-                <div key={item.id} className="flex items-center gap-3 p-1.5 rounded-lg border border-transparent hover:border-zinc-800/50 transition-all group">
-                   <div className="w-7 h-7 rounded-lg bg-zinc-950/50 flex items-center justify-center shrink-0 border border-zinc-900 group-hover:border-primary/30 transition-colors">
-                      {item.category === "Vault" ? <LinkIcon size={12} className="text-zinc-600" /> : 
-                       item.category === "Drive" ? <HardDrive size={12} className="text-zinc-600" /> :
-                       <Search size={12} className="text-zinc-600" />}
-                   </div>
-                   <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-zinc-300 truncate tracking-tight">{item.title}</p>
-                      <p className="text-[8px] font-black uppercase tracking-wider text-zinc-600 mt-0.5">{item.category}</p>
-                   </div>
-                   <a href={item.url} target="_blank" rel="noopener noreferrer" className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-zinc-500 hover:text-white">
-                      <ArrowUpRight size={14} />
-                   </a>
-                </div>
-              )) : (
+              {recentHistory.length > 0 ? recentHistory.map(item => {
+                 const Icon = item.category === "Vault" ? LinkIcon : (item.category === "Drive" ? HardDrive : Search);
+                 return (
+                  <div key={item.id} className="flex items-center gap-3 p-1.5 rounded-lg border border-transparent hover:border-zinc-800/50 transition-all group">
+                     <div className="w-7 h-7 rounded-lg bg-zinc-950/50 flex items-center justify-center shrink-0 border border-zinc-900 group-hover:border-primary/30 transition-colors">
+                        <Icon size={12} className="text-zinc-600" />
+                     </div>
+                     <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-bold text-zinc-300 truncate tracking-tight">{item.title}</p>
+                        <p className="text-[8px] font-black uppercase tracking-wider text-zinc-600 mt-0.5">{item.category}</p>
+                     </div>
+                     {item.url && (
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-zinc-500 hover:text-white">
+                           <ArrowUpRight size={14} />
+                        </a>
+                     )}
+                  </div>
+                 );
+              }) : (
                 <div className="py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-800">No recent activity</div>
               )}
             </div>

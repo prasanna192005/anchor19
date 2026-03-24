@@ -13,8 +13,10 @@ import {
   Zap,
   CheckCircle2,
   Clock,
-  Trash2
+  Trash2,
+  Edit3
 } from "lucide-react";
+import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 import { 
   collection, 
   query, 
@@ -42,6 +44,9 @@ export default function ProjectsPage() {
   const [driveItems, setDriveItems] = useState<any[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [newProject, setNewProject] = useState({ name: "", description: "", tag: "Active" });
+  const [hoveredItem, setHoveredItem] = useState<any>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState("");
 
   const { showMenu } = useContextMenu();
 
@@ -66,9 +71,9 @@ export default function ProjectsPage() {
 
   const { showToast } = useToast();
 
-  const deleteProject = async (id: string) => {
+  const deleteProject = async (id: string, name?: string) => {
     if (!user) return;
-    if (confirm("Terminate project infrastructure? This action is irreversible.")) {
+    if (confirm(`Terminate project infrastructure for "${name || 'this project'}"? This action is irreversible.`)) {
       try {
         await deleteDoc(doc(db, `users/${user.uid}/projects`, id));
         showToast("Infrastructure Terminated", "error");
@@ -77,6 +82,45 @@ export default function ProjectsPage() {
       }
     }
   };
+
+  const renameProject = (project: any) => {
+    if (!project) return;
+    setRenamingId(project.id);
+    setRenamingValue(project.name || "");
+  };
+
+  const saveRenamedProject = async (project: any) => {
+    if (!user || !renamingId || !renamingValue.trim()) {
+      setRenamingId(null);
+      return;
+    }
+
+    if (renamingValue === project.name) {
+      setRenamingId(null);
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, `users/${user.uid}/projects`, project.id), { 
+        name: renamingValue, 
+        updatedAt: serverTimestamp() 
+      });
+      showToast("Identity Updated", "success");
+    } catch (e) {
+      showToast("Update Failure", "error");
+    } finally {
+      setRenamingId(null);
+    }
+  };
+
+  useKeyboardActions({
+    onRename: () => {
+      if (hoveredItem) renameProject(hoveredItem);
+    },
+    onDelete: () => {
+      if (hoveredItem) deleteProject(hoveredItem.id, hoveredItem.name);
+    }
+  });
 
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,14 +177,16 @@ export default function ProjectsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
+              onMouseEnter={() => setHoveredItem(project)}
+              onMouseLeave={() => setHoveredItem(null)}
               onContextMenu={(e) => {
                 e.preventDefault();
                 showMenu(e.clientX, e.clientY, [
-                  { label: "Rename Project", icon: <Edit2 size={14} />, onClick: () => showToast("Renaming not yet implemented", "info") },
-                  { label: "Terminate System", icon: <Trash2 size={14} />, variant: "destructive", onClick: () => deleteProject(project.id) },
+                  { label: "Rename Project", icon: <Edit3 size={14} />, onClick: () => renameProject(project) },
+                  { label: "Terminate System", icon: <Trash2 size={14} />, variant: "destructive", onClick: () => deleteProject(project.id, project.name) },
                 ], project.name);
               }}
-              className="group"
+              className="group cursor-context-menu"
             >
               <Link href={`/projects/${project.id}`} className="block h-full">
                 <div className="glass-card rounded-3xl p-8 border border-zinc-800/80 hover:border-zinc-700 transition-all group-hover:bg-zinc-900/10 overflow-hidden relative h-full flex flex-col">
@@ -158,7 +204,22 @@ export default function ProjectsPage() {
                     </div>
                   </div>
 
-                  <h3 className="text-2xl font-bold text-white mb-2 tracking-tight group-hover:text-primary transition-colors">{project.name}</h3>
+                  {renamingId === project.id ? (
+                    <input
+                      autoFocus
+                      className="w-full bg-zinc-800 border border-primary/50 rounded px-2 py-1 text-2xl font-bold text-white outline-none focus:border-primary mb-2"
+                      value={renamingValue}
+                      onChange={(e) => setRenamingValue(e.target.value)}
+                      onBlur={() => saveRenamedProject(project)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveRenamedProject(project);
+                        if (e.key === "Escape") setRenamingId(null);
+                      }}
+                      onClick={(e) => e.preventDefault()}
+                    />
+                  ) : (
+                    <h3 className="text-2xl font-bold text-white mb-2 tracking-tight group-hover:text-primary transition-colors">{project.name}</h3>
+                  )}
                   <p className="text-sm text-zinc-500 line-clamp-2 leading-relaxed mb-8 flex-1">{project.description || "Experimental architecture and layout design for modular system."}</p>
 
                   <div className="pt-6 border-t border-zinc-900 flex items-center justify-between">

@@ -14,7 +14,8 @@ import {
   PlusCircle,
   Link2,
   Globe,
-  Edit2
+  Edit2,
+  Edit3
 } from "lucide-react";
 import { 
   collection, 
@@ -68,17 +69,10 @@ export default function LinksPage() {
     }
   };
 
-  const renameLink = async (link: any) => {
+  const renameLink = (link: any) => {
     if (!user || !link) return;
-    const newTitle = prompt("Enter new resource identity:", link.title || "");
-    if (newTitle) {
-      try {
-        await updateDoc(doc(db, `users/${user.uid}/links`, link.id), { title: newTitle });
-        showToast("Identity Updated", "success");
-      } catch (e) {
-        showToast("Update Failure", "error");
-      }
-    }
+    setEditingId(link.id);
+    setEditValue(link.title || "");
   };
 
   useKeyboardActions({
@@ -172,8 +166,8 @@ export default function LinksPage() {
 
   const filteredLinks = links.filter(l => {
     const matchesTag = activeTag === "All" || l.category === activeTag;
-    const matchesSearch = l.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         l.url.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (l.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         (l.url || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTag && matchesSearch;
   });
 
@@ -258,6 +252,7 @@ export default function LinksPage() {
                     copyRef({ id: link.id, type: "link", title: link.title });
                     showToast("Reference Copied to Clipboard", "success");
                   } },
+                  { label: "Rename Resource", icon: <Edit3 size={14} />, onClick: () => renameLink(link) },
                   { label: "Edit Resource", icon: <Edit2 size={14} />, onClick: () => {
                     setForm({ title: link.title, url: link.url, category: link.category || "General", description: link.description || "", projectId: link.projectId || "" });
                     setModalState({ isOpen: true, mode: "edit", link });

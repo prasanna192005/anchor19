@@ -16,6 +16,7 @@ import {
   PlusCircle,
   Tag,
   Edit2,
+  Edit3,
   Copy,
   Move,
   FileText
@@ -74,17 +75,10 @@ export default function TodosPage() {
     }
   };
 
-  const renameTodo = async (todo: any) => {
-    if (!user || !todo) return;
-    const newTitle = prompt("Re-initialize objective ID:", todo.title || "");
-    if (newTitle) {
-      try {
-        await updateDoc(doc(db, `users/${user.uid}/todos`, todo.id), { title: newTitle });
-        showToast("Objective Identity Updated", "success");
-      } catch (e) {
-        showToast("Update Failure", "error");
-      }
-    }
+  const renameTodo = (todo: any) => {
+    if (!todo) return;
+    setEditingId(todo.id);
+    setEditValue(todo.title || "");
   };
 
   const duplicateTodo = async (todo: any) => {
@@ -143,6 +137,7 @@ export default function TodosPage() {
           setModalState({ isOpen: true, mode: "edit", todo });
         }
       },
+      { label: "Rename Objective", icon: <Edit3 size={14} />, onClick: () => renameTodo(todo) },
       { label: "Duplicate", icon: <Copy size={14} />, onClick: () => duplicateTodo(todo) },
       { label: "Move to Project", icon: <Move size={14} />, onClick: () => moveToProject(todo) },
       { label: "Create Note", icon: <FileText size={14} />, onClick: () => createNoteFromTask(todo) },
@@ -153,7 +148,7 @@ export default function TodosPage() {
   useKeyboardActions({
     onCopy: () => {
        if (hoveredTodo) {
-         copyRef({ id: hoveredTodo.id, type: "link", title: hoveredTodo.title }); // Reusing link type for simplicity or I should add 'todo'
+         copyRef({ id: hoveredTodo.id, type: "link", title: hoveredTodo.title }); 
          showToast("Objective Reference Copied", "success");
        }
     },
@@ -227,12 +222,7 @@ export default function TodosPage() {
     await updateDoc(doc(db, `users/${user.uid}/todos`, id), { status });
   };
 
-  const deleteTodo = async (id: string) => {
-    if (!user) return;
-    await deleteDoc(doc(db, `users/${user.uid}/todos`, id));
-  };
-
-  const filteredTodos = todos.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredTodos = todos.filter(t => (t.title || "").toLowerCase().includes(searchQuery.toLowerCase()));
 
   if (loading || !user) return null;
 
