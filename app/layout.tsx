@@ -37,8 +37,8 @@ export default function RootLayout({
       </head>
       <body className="font-sans min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-x-hidden">
         <ThemeProvider>
-          <AuthProvider>
-            <ToastProvider>
+          <ToastProvider>
+            <AuthProvider>
               <LinkingProvider>
                 <ContextMenuProvider>
                   <LayoutWrapper>
@@ -48,8 +48,8 @@ export default function RootLayout({
                   <CommandPalette />
                 </ContextMenuProvider>
               </LinkingProvider>
-            </ToastProvider>
-          </AuthProvider>
+            </AuthProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>
