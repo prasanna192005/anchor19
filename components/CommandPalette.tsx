@@ -22,7 +22,8 @@ import {
   Trash2,
   Edit3,
   ExternalLink,
-  Mic
+  Mic,
+  User
 } from "lucide-react";
 import { 
   collection,
@@ -41,6 +42,8 @@ import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/context/ToastContext";
 import { useHistory } from "@/hooks/useHistory";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
@@ -49,6 +52,7 @@ export default function CommandPalette() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [hoveredItem, setHoveredItem] = useState<any>(null);
   
   const { user, logOut, gdriveToken, signInWithGoogleDrive } = useAuth();
   const { showToast } = useToast();
@@ -229,33 +233,45 @@ export default function CommandPalette() {
            getDocs(query(collection(db, `users/${user.uid}/notes`), limit(100))),
         ]);
 
-        const projectResults = pSnap.docs.map(doc => ({ 
-           id: doc.id, 
-           title: doc.data().name, 
-           icon: Folder, 
-           category: "Projects", 
-           action: () => { router.push(`/projects/${doc.id}`); setIsOpen(false); } 
-        }));
+        const projectResults = pSnap.docs.map(doc => {
+          const data = doc.data();
+          return { 
+             id: doc.id, 
+             title: data.name, 
+             icon: Folder, 
+             category: "Projects", 
+             action: () => { router.push(`/projects/${doc.id}`); setIsOpen(false); },
+             raw: { ...data, id: doc.id, collection: "projects" }
+          };
+        });
 
-        const todoResults = tSnap.docs.map(doc => ({ 
-           id: doc.id, 
-           title: doc.data().title, 
-           icon: CheckSquare, 
-           category: "Tasks", 
-           action: () => { router.push("/todos"); setIsOpen(false); } 
-        }));
+        const todoResults = tSnap.docs.map(doc => {
+          const data = doc.data();
+          return { 
+             id: doc.id, 
+             title: data.title, 
+             icon: CheckSquare, 
+             category: "Tasks", 
+             action: () => { router.push("/todos"); setIsOpen(false); },
+             raw: { ...data, id: doc.id, collection: "todos" }
+          };
+        });
 
-        const linkResults = lSnap.docs.map(doc => ({ 
-           id: doc.id, 
-           title: doc.data().title, 
-           icon: LinkIcon, 
-           category: "Vault", 
-           action: () => { 
-              logInteraction({ title: doc.data().title, url: doc.data().url, category: "Vault" });
-              window.open(doc.data().url, '_blank'); 
-              setIsOpen(false); 
-           } 
-        }));
+        const linkResults = lSnap.docs.map(doc => {
+          const data = doc.data();
+          return { 
+             id: doc.id, 
+             title: data.title, 
+             icon: LinkIcon, 
+             category: "Vault", 
+             action: () => { 
+                logInteraction({ title: data.title, url: data.url, category: "Vault" });
+                window.open(data.url, '_blank'); 
+                setIsOpen(false); 
+             },
+             raw: { ...data, id: doc.id, collection: "links" }
+          };
+        });
 
         const driveResultsRaw = dSnap.docs.map(doc => {
            const data = doc.data();
@@ -274,13 +290,17 @@ export default function CommandPalette() {
            };
         });
          
-         const noteResults = nSnap.docs.map(doc => ({
-            id: doc.id,
-            title: doc.data().content.substring(0, 50),
-            icon: StickyNote,
-            category: "Knowledge",
-            action: () => { router.push("/notes"); setIsOpen(false); }
-         }));
+         const noteResults = nSnap.docs.map(doc => {
+           const data = doc.data();
+           return {
+              id: doc.id,
+              title: data.content.substring(0, 50),
+              icon: StickyNote,
+              category: "Knowledge",
+              action: () => { router.push("/notes"); setIsOpen(false); },
+              raw: { ...data, id: doc.id, collection: "notes" }
+           };
+         });
 
          const allLocalPool = [...projectResults, ...todoResults, ...linkResults, ...driveResultsRaw, ...noteResults];
         const lowerQ = q.toLowerCase();
@@ -376,7 +396,7 @@ export default function CommandPalette() {
 
         if (gdriveToken && q.length > 2) {
           try {
-            const gResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains '${q}' and trashed = false&fields=files(id, name, mimeType, webViewLink)&pageSize=5`, {
+            const gResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains '${q}' and trashed = false&fields=files(id, name, mimeType, webViewLink, thumbnailLink, iconLink, size, modifiedTime, lastModifyingUser)&pageSize=5`, {
               headers: { Authorization: `Bearer ${gdriveToken}` }
             });
             const gData = await gResponse.json();
@@ -520,7 +540,7 @@ export default function CommandPalette() {
             initial={{ opacity: 0, scale: 0.99, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.99, y: -10 }}
-            className="bg-zinc-900/95 backdrop-blur-3xl w-full max-w-[600px] rounded-2xl shadow-2xl overflow-hidden pointer-events-auto border border-zinc-800/50 flex flex-col relative z-10"
+            className="bg-zinc-900/95 backdrop-blur-3xl w-full max-w-[600px] rounded-2xl shadow-2xl pointer-events-auto border border-zinc-800/50 flex flex-col relative z-10"
           >
             <div className="flex items-center px-8 py-6 gap-4 border-b border-zinc-800/50">
               <Search className={cn("text-zinc-500 transition-colors", isListening && "text-primary")} size={20} />
@@ -575,6 +595,11 @@ export default function CommandPalette() {
                         <div
                           key={item.id}
                           onClick={() => item.action()}
+                          onMouseEnter={() => {
+                            setSelectedIndex(results.indexOf(item));
+                            setHoveredItem(item);
+                          }}
+                          onMouseLeave={() => setHoveredItem(null)}
                           className={cn(
                              "w-full flex items-center px-4 py-3 gap-4 rounded-xl transition-all text-left cursor-pointer group relative",
                              isSelected ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-zinc-400 hover:bg-zinc-800/40 hover:text-white"
@@ -650,6 +675,159 @@ export default function CommandPalette() {
                 <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Mention</span>
               </div>
             </div>
+
+            {/* Universal Preview Panel */}
+            <AnimatePresence>
+              {hoveredItem && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="flex flex-col w-full lg:w-96 lg:absolute lg:left-full lg:ml-4 lg:top-0 lg:h-full bg-zinc-950/40 backdrop-blur-3xl border border-white/5 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] mt-4 lg:mt-0 group/preview"
+                >
+                  {/* Subtle Inner Glow */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+                  
+                  <div className="p-8 h-full flex flex-col gap-6 overflow-y-auto custom-scrollbar relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-zinc-900/50 flex items-center justify-center border border-white/5 shadow-inner">
+                        <hoveredItem.icon size={24} className="text-primary drop-shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1">{hoveredItem.category}</p>
+                        <h3 className="text-base font-black text-white leading-tight break-words">{hoveredItem.title}</h3>
+                      </div>
+                    </div>
+
+                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent opacity-30" />
+
+                    {/* Dynamic Content Preview */}
+                    <div className="flex-1 text-xs text-zinc-400 space-y-6">
+                      {hoveredItem.category === "Knowledge" && hoveredItem.raw && (
+                        <div className="markdown-content text-[11px] max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {hoveredItem.raw.content}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+
+                      {hoveredItem.category === "Vault" && hoveredItem.raw && (
+                        <div className="space-y-6">
+                          <div className="p-3 rounded-2xl bg-zinc-900/30 border border-white/5 font-mono text-[10px] text-primary/80 truncate italic">
+                            {hoveredItem.raw.url}
+                          </div>
+                          {hoveredItem.raw.notes && (
+                            <div className="space-y-2">
+                               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Attached Intelligence</p>
+                               <div className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 shadow-inner">
+                                 <p className="italic text-zinc-400 leading-relaxed line-clamp-6">{hoveredItem.raw.notes}</p>
+                               </div>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/5 border border-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">
+                            <ExternalLink size={14} /> Global Link Protocol
+                          </div>
+                        </div>
+                      )}
+
+                      {hoveredItem.category === "Deep Search findings" && hoveredItem.raw && (
+                        <div className="space-y-6">
+                          {hoveredItem.raw.thumbnailLink ? (
+                            <div className="w-full aspect-video rounded-2xl bg-zinc-900/50 border border-white/5 overflow-hidden relative shadow-2xl">
+                              <img src={hoveredItem.raw.thumbnailLink.replace("=s220", "=s800")} alt="" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 to-transparent" />
+                            </div>
+                          ) : (
+                            <div className="w-full aspect-video rounded-2xl bg-zinc-900/20 border border-white/5 flex flex-col items-center justify-center gap-3 shadow-inner relative overflow-hidden">
+                               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(var(--primary-rgb),0.1)_0%,transparent_70%)]" />
+                               <hoveredItem.icon size={48} className="text-zinc-800 opacity-50" />
+                               <span className="text-[10px] font-bold text-zinc-700 uppercase tracking-widest">No Visual Preview</span>
+                            </div>
+                          )}
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-4 rounded-2xl bg-zinc-900/30 border border-white/5 flex flex-col gap-2 transition-colors hover:bg-zinc-900/50">
+                              <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Modified</span>
+                              <span className="text-xs font-bold text-zinc-300">{new Date(hoveredItem.raw.modifiedTime).toLocaleDateString()}</span>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-zinc-900/30 border border-white/5 flex flex-col gap-2 transition-colors hover:bg-zinc-900/50">
+                              <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Format</span>
+                              <span className="text-xs font-bold text-zinc-300 truncate uppercase">{hoveredItem.raw.mimeType.split(".").pop() || "Binary"}</span>
+                            </div>
+                          </div>
+                          
+                          {hoveredItem.raw.lastModifyingUser && (
+                            <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-900/50 to-transparent border border-white/5 flex items-center gap-3">
+                               <div className="relative w-8 h-8">
+                                 {hoveredItem.raw.lastModifyingUser.photoLink ? (
+                                   <img 
+                                      src={hoveredItem.raw.lastModifyingUser.photoLink} 
+                                      alt="" 
+                                      className="w-full h-full rounded-full border border-white/10" 
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).parentElement?.querySelector('.avatar-fallback')?.classList.remove('hidden');
+                                      }}
+                                   />
+                                 ) : null}
+                                 <div className={cn(
+                                   "avatar-fallback w-full h-full rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center",
+                                   hoveredItem.raw.lastModifyingUser.photoLink ? "hidden" : "flex"
+                                 )}>
+                                   <User size={14} className="text-zinc-500" />
+                                 </div>
+                                 <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-zinc-950" />
+                               </div>
+                               <div className="min-w-0">
+                                 <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Contributed By</p>
+                                 <p className="text-xs font-bold text-zinc-300 truncate">{hoveredItem.raw.lastModifyingUser.displayName}</p>
+                               </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {hoveredItem.category === "Tasks" && hoveredItem.raw && (
+                        <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                            <div className={cn(
+                              "inline-flex px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm",
+                              hoveredItem.raw.priority === "High" ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                              "bg-primary/10 text-primary border-primary/20"
+                            )}>
+                              {hoveredItem.raw.priority} Priority
+                            </div>
+                            <span className="text-[10px] font-bold text-zinc-600">ID: {hoveredItem.id.substring(0, 8)}</span>
+                          </div>
+                          
+                          <div className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5">
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-2">Scope</p>
+                            <p className="text-sm font-bold text-zinc-200">{hoveredItem.raw.category || "General Objective"}</p>
+                          </div>
+
+                          {hoveredItem.raw.notes && (
+                            <div className="space-y-2">
+                               <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Requirement Notes</p>
+                               <p className="p-4 rounded-2xl bg-zinc-900/20 border border-white/5 text-zinc-400 italic leading-relaxed shadow-inner">{hoveredItem.raw.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-auto pt-6 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.2em] text-zinc-700">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        <span>Preview Protocol v1.2</span>
+                      </div>
+                      <span className="flex items-center gap-1.5 opacity-50 hover:opacity-100 transition-opacity cursor-help">
+                        Reference Hash <ArrowRight size={10}/>
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </div>
       )}

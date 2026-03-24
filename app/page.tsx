@@ -84,14 +84,17 @@ export default function Dashboard() {
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
 
-      const todosQ = query(collection(db, `users/${user.uid}/todos`), orderBy("createdAt", "desc"), limit(20));
+      const todosQ = query(collection(db, `users/${user.uid}/todos`), orderBy("createdAt", "desc"), limit(100));
       const unsubTodos = onSnapshot(todosQ, (s) => {
         const all = s.docs.map(d => ({id: d.id, ...(d.data() as any)}));
         setRecentTodos(all.filter(t => t.status !== "Done").slice(0, 5));
-        const todayTasks = all.filter(t => t.createdAt?.toDate() >= startOfDay);
+        
+        const activeTasks = all.filter(t => t.status !== "Done");
+        const completedTasks = all.filter(t => t.status === "Done");
+        
         setTodoStats({ 
-          total: todayTasks.length, 
-          done: todayTasks.filter(t => t.status === "Done").length 
+          total: activeTasks.length, 
+          done: completedTasks.length 
         });
       });
 
@@ -212,7 +215,7 @@ export default function Dashboard() {
               </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mt-2 flex items-center gap-2 font-mono">
                 <span className="w-2 h-2 rounded-full bg-primary shadow-glow" />
-                {todoStats.total > 0 ? `${todoStats.done} / ${todoStats.total} tasks_commited` : "no_tasks_scheduled"}
+                {todoStats.total + todoStats.done > 0 ? `${todoStats.done} / ${todoStats.total + todoStats.done} tasks_commited` : "no_tasks_scheduled"}
               </p>
             </div>
           </div>
@@ -322,12 +325,12 @@ export default function Dashboard() {
                       <div className="flex-1 h-3 rounded-full bg-zinc-950/50 overflow-hidden border border-zinc-900 shadow-inner">
                         <motion.div 
                           initial={{ width: 0 }}
-                          animate={{ width: `${todoStats.total > 0 ? (todoStats.done / todoStats.total) * 100 : 0}%` }}
+                          animate={{ width: `${(todoStats.total + todoStats.done) > 0 ? (todoStats.done / (todoStats.total + todoStats.done)) * 100 : 0}%` }}
                           className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]" 
                         />
                       </div>
                      <span className="text-sm font-black tabular-nums text-white">
-                       {todoStats.done} <span className="text-zinc-600">/</span> {todoStats.total}
+                       {todoStats.total} <span className="text-zinc-600">active</span>
                      </span>
                    </div>
                 </div>
