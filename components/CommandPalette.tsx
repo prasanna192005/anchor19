@@ -285,11 +285,21 @@ export default function CommandPalette() {
         }
       }
 
-      const moveMatch = q.match(/move\s+@([\w\s]+?)\s+to\s+([\w\s]+)/);
+      // Support: move @X to Category  AND  move @X to @ProjectName
+      const moveMatch = q.match(/move\s+@([\w\s]+?)\s+to\s+@?([\w\s]+)/);
       if (moveMatch) {
         const source = localPool.find(it => it.title.toLowerCase().includes(moveMatch[1].trim()));
+        const destRaw = moveMatch[2].trim();
+        // Check if destination is a @mention to another item
+        const destItem = localPool.find(it => it.title.toLowerCase().includes(destRaw));
+        const destLabel = destItem ? destItem.title : destRaw;
         if (source) {
-          smart.push({ id: `mv-${source.id}`, type: "move", docId: source.id, collection: source.raw.collection, dest: moveMatch[2].trim(), title: `Move "${source.title}" → ${moveMatch[2].trim()}`, icon: MoveRight, category: "Action" });
+          smart.push({
+            id: `mv-${source.id}`, type: "move", docId: source.id, collection: source.raw.collection,
+            dest: destLabel,
+            title: `Move "${source.title}" → ${destItem ? `@${destLabel}` : destLabel}`,
+            icon: MoveRight, category: "Action"
+          });
         }
       }
 
