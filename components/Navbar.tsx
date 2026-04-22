@@ -82,9 +82,12 @@ export default function Navbar() {
 
       {/* Global Shortcut Entry Point */}
       <div className="hidden lg:flex flex-col gap-4 px-10 mb-8 mt-4">
-        <div className="flex items-center gap-4 text-zinc-700 hover:text-zinc-500 transition-colors cursor-default">
+        <div 
+          onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+          className="flex items-center gap-4 text-zinc-700 hover:text-white transition-colors cursor-pointer group"
+        >
            <div className="flex gap-1.5 shrink-0">
-              <kbd className="px-1.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-500 font-mono select-none">⌘K</kbd>
+              <kbd className="px-1.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-500 font-mono select-none group-hover:border-primary/50 group-hover:text-primary transition-all">⌘K</kbd>
            </div>
            <span className="text-[10px] font-bold uppercase tracking-[0.2em] leading-tight select-none">Universal_Search</span>
         </div>

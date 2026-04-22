@@ -219,7 +219,6 @@ export default function Dashboard() {
                animate={{ opacity: 1, x: 0 }}
                className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary flex items-center gap-3"
             >
-              <span className="w-12 h-0.5 bg-primary" /> System_Online
             </motion.div>
             <div className="space-y-1">
               <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white leading-[0.9]">

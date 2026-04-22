@@ -23,7 +23,6 @@ export default function LayoutWrapper({
   return (
     <>
       <Navbar />
-      <CommandPalette />
       <main className="relative flex-1 min-h-screen pl-20 lg:pl-64">
         {children}
       </main>

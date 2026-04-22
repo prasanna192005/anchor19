@@ -104,7 +104,7 @@ export default function CommandPalette() {
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setIsOpen(p => !p); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setIsOpen(p => !p); }
       if (e.key === "Escape") { setIsOpen(false); setQueryText(""); }
       // Global Cmd+Z undo
       if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey && !isOpenRef.current) {
