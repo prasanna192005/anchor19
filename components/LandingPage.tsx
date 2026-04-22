@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { 
   ArrowRight, 
   CheckSquare, 
@@ -53,6 +54,7 @@ export default function LandingPage() {
       <nav className="flex justify-between items-center w-full px-12 py-8 z-50 bg-transparent font-sans tracking-tighter uppercase text-sm fixed top-0">
         <div className="text-2xl font-bold tracking-[-0.05em] text-foreground">ANCHOR19</div>
         <div className="hidden md:flex items-center gap-12 text-outline">
+          <Link className="font-medium hover:text-foreground transition-all duration-300" href="/why-anchor19">WHY ANCHOR19</Link>
           <a className="font-medium hover:text-foreground transition-all duration-300" href="#features">FEATURES</a>
           <a className="font-medium hover:text-foreground transition-all duration-300" href="#how-it-works">HOW IT WORKS</a>
           <button 
@@ -100,23 +102,38 @@ export default function LandingPage() {
             </motion.p>
           </div>
 
-          <motion.button 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="group bg-foreground text-background px-12 py-6 rounded-2xl font-black text-xl flex items-center gap-6 hover:bg-primary shadow-soft transition-all active:scale-95"
-            onClick={signInWithGoogle}
-          >
-            <div className="flex items-center gap-4">
-              <img 
-                alt="Google" 
-                className="w-6 h-6 flex-shrink-0" 
-                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-              />
-              <span>GET EARLY ACCESS</span>
-            </div>
-            <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
-          </motion.button>
+          <div className="flex flex-wrap gap-6">
+            <motion.button 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="group bg-foreground text-background px-12 py-6 rounded-2xl font-black text-xl flex items-center gap-6 hover:bg-primary shadow-soft transition-all active:scale-95"
+              onClick={signInWithGoogle}
+            >
+              <div className="flex items-center gap-4">
+                <img 
+                  alt="Google" 
+                  className="w-6 h-6 flex-shrink-0" 
+                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                />
+                <span>GET EARLY ACCESS</span>
+              </div>
+              <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
+            </motion.button>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <Link 
+                href="/why-anchor19"
+                className="px-10 py-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md font-black text-xl flex items-center gap-4 hover:bg-white/10 transition-all text-white"
+              >
+                WHY ANCHOR19?
+              </Link>
+            </motion.div>
+          </div>
         </div>
       </section>
 

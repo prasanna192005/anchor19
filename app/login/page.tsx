@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import Link from "next/link";
 export default function LoginPage() {
   const { user, signInWithGoogle, loading } = useAuth();
   const router = useRouter();
@@ -50,6 +50,12 @@ export default function LoginPage() {
       {/* TopNavBar */}
       <nav className="flex justify-between items-center w-full px-12 py-8 z-50 bg-transparent font-sans tracking-tighter uppercase text-sm fixed top-0">
         <div className="text-2xl font-bold tracking-[-0.05em] text-foreground">ANCHOR19</div>
+        <Link 
+          href="/why-anchor19" 
+          className="text-outline hover:text-primary font-bold tracking-widest transition-all"
+        >
+          WHY ANCHOR19?
+        </Link>
       </nav>
 
       {/* Main Content: Login Shell */}
@@ -111,7 +117,7 @@ export default function LoginPage() {
                 <p className="text-outline text-lg">Initialize your secure workspace connection.</p>
               </div>
 
-              <div className="pt-4">
+              <div className="pt-4 flex flex-col gap-4">
                 <button 
                   onClick={signInWithGoogle}
                   className="w-full bg-foreground text-background py-6 px-8 font-sans font-black uppercase tracking-widest text-sm hover:bg-primary hover:text-primary-foreground transition-all duration-500 transform hover:scale-[1.02] flex justify-between items-center group"
@@ -126,9 +132,15 @@ export default function LoginPage() {
                   </div>
                   <ArrowRight className="group-hover:translate-x-2 transition-transform" />
                 </button>
-                <p className="mt-8 text-outline text-[10px] leading-relaxed uppercase tracking-widest text-center">
+                <Link 
+                  href="/why-anchor19" 
+                  className="w-full border border-white/10 bg-white/5 py-4 px-8 font-sans font-black uppercase tracking-widest text-[10px] text-zinc-500 hover:bg-white/10 hover:text-white transition-all text-center rounded-sm"
+                >
+                  Learn_The_Philosophy
+                </Link>
+                {/* <p className="mt-4 text-outline text-[10px] leading-relaxed uppercase tracking-widest text-center">
                   Enterprise security protocols active. All access is logged.
-                </p>
+                </p> */}
               </div>
             </motion.div>
             <p className="mt-8 text-center text-outline-variant text-[10px] uppercase tracking-widest">

@@ -100,6 +100,14 @@ body {
   .markdown-content code { @apply bg-zinc-800 px-1.5 py-0.5 rounded text-xs font-mono text-primary; }
   .markdown-content pre { @apply bg-zinc-950 p-4 rounded-xl mb-4 border border-zinc-900 overflow-x-auto; }
   .markdown-content blockquote { @apply border-l-4 border-primary/30 pl-4 py-1 italic mb-4 text-zinc-500; }
+  
+  .custom-scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+  .custom-scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 * {

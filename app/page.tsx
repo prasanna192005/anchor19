@@ -58,6 +58,20 @@ const typeStyles = {
   Link: { color: "#4F46E5", icon: LinkIcon, bg: "rgba(79, 70, 229, 0.1)" },
 };
 
+const stripFormatting = (text: string) => {
+  if (!text) return "";
+  // Remove images
+  let clean = text.replace(/<img[^>]*>/g, "[Image]");
+  clean = clean.replace(/!\[.*?\]\(.*?\)/g, "[Image]");
+  // Remove Base64
+  clean = clean.replace(/data:image\/[a-zA-Z]+;base64,[^\s"']+/g, "");
+  // Remove HTML
+  clean = clean.replace(/<[^>]*>?/gm, '');
+  // Remove Markdown symbols
+  clean = clean.replace(/[#*`>~_-]/g, "");
+  return clean.trim();
+};
+
 export default function Dashboard() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -104,7 +118,7 @@ export default function Dashboard() {
       const linksQ = query(collection(db, `users/${user.uid}/links`), where("pinned", "==", true), limit(6));
       const unsubLinks = onSnapshot(linksQ, (s) => setPinnedLinks(s.docs.map(d => ({id: d.id, ...d.data()}))));
 
-      const notesQ = query(collection(db, `users/${user.uid}/notes`), orderBy("updatedAt", "desc"), limit(2));
+      const notesQ = query(collection(db, `users/${user.uid}/notes`), orderBy("updatedAt", "desc"), limit(5));
       const unsubNotes = onSnapshot(notesQ, (s) => setRecentNotes(s.docs.map(d => ({id: d.id, ...d.data()}))));
 
       const driveQ = query(collection(db, `users/${user.uid}/drive`), orderBy("createdAt", "desc"), limit(3));
@@ -221,11 +235,19 @@ export default function Dashboard() {
             >
             </motion.div>
             <div className="space-y-1">
-              <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white leading-[0.9]">
-                Welcome back, <br/>
-                <span className="text-primary italic font-black">
-                  {user?.displayName?.split(" ")[0] || "User"}
-                </span>
+              <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white leading-[0.9] flex items-center gap-4 flex-wrap">
+                <div>
+                  Welcome back, <br/>
+                  <span className="text-primary italic font-black">
+                    {user?.displayName?.split(" ")[0] || "User"}
+                  </span>
+                </div>
+                <Link 
+                  href="/why-anchor19" 
+                  className="px-4 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/50 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-primary hover:border-primary/30 transition-all self-center mt-2 lg:mt-0"
+                >
+                  Why_Anchor19?
+                </Link>
               </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mt-2 flex items-center gap-2 font-mono">
                 <span className="w-2 h-2 rounded-full bg-primary shadow-glow" />
@@ -503,7 +525,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="lg:col-span-6 lg:row-span-1 glass-card rounded-3xl p-6 flex flex-col gap-4 border border-zinc-800/80 overflow-hidden"
+            className="lg:col-span-6 lg:row-span-2 glass-card rounded-3xl p-8 flex flex-col gap-6 border border-zinc-800/80 overflow-hidden"
           >
             <div className="flex items-center justify-between">
                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 font-mono">Archive_Notes</h2>
@@ -544,12 +566,14 @@ export default function Dashboard() {
                         onBlur={() => saveRenamedResource(note.id, "notes")}
                       />
                     ) : (
-                      <p 
-                        className="text-[11px] font-bold text-zinc-400 line-clamp-1 group-hover:text-white"
-                        onClick={() => { setRenamingId(note.id); setRenamingValue(note.content?.split('\n')[0].replace(/^#+\s*/, '') || ""); }}
-                      >
-                         {note.content}
-                      </p>
+                      <div className="flex flex-col gap-1 cursor-pointer py-1.5" onClick={() => router.push(`/notes/${note.id}`)}>
+                         <span className="text-[10px] font-bold text-zinc-200 uppercase tracking-[0.1em] line-clamp-1">
+                           {note.content?.split('\n')[0].replace(/^#+\s*/, '') || "Untitled Note"}
+                         </span>
+                         <p className="text-[10px] font-medium text-zinc-500 line-clamp-1 leading-relaxed group-hover:text-zinc-300">
+                           {stripFormatting(note.content?.split('\n').slice(1).join(' ') || note.content)}
+                         </p>
+                      </div>
                     )}
                  </div>
                ))}
