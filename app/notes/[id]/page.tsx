@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Save, Trash2, Clock, Hash } from "lucide-react";
-import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp, addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/context/ToastContext";
@@ -74,23 +74,52 @@ export default function NoteDetailPage() {
     fetchNote();
   }, [user, loading, noteId, router]);
 
-  const handleSave = async () => {
-    if (!user || !noteId || noteId === "new") return;
+  const handleSave = async (isAuto = false) => {
+    if (!user || !noteId) return;
+    
+    // Don't auto-save if nothing has changed or content is empty
+    if (isAuto && !form.content.trim()) return;
+
     setIsSaving(true);
     try {
-      const docRef = doc(db, `users/${user.uid}/notes`, noteId);
-      await updateDoc(docRef, {
-        ...form,
-        updatedAt: serverTimestamp(),
-      });
-      setLastSaved(new Date());
-      showToast("Thought Saved", "success");
+      if (noteId === "new") {
+        const docRef = await addDoc(collection(db, `users/${user.uid}/notes`), {
+          ...form,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        setLastSaved(new Date());
+        if (!isAuto) showToast("Thought Initialized", "success");
+        // Use replace to avoid "new" in history
+        router.replace(`/notes/${docRef.id}`);
+      } else {
+        const docRef = doc(db, `users/${user.uid}/notes`, noteId);
+        await updateDoc(docRef, {
+          ...form,
+          updatedAt: serverTimestamp(),
+        });
+        setLastSaved(new Date());
+        if (!isAuto) showToast("Thought Saved", "success");
+      }
     } catch (e) {
-      showToast("Save Failure", "error");
+      console.error("Save error:", e);
+      if (!isAuto) showToast("Save Failure", "error");
     } finally {
       setIsSaving(false);
     }
   };
+
+  // Auto-save effect
+  useEffect(() => {
+    // Only auto-save if there's content and we're not already saving
+    if (!form.content.trim()) return;
+    
+    const timer = setTimeout(() => {
+      handleSave(true);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [form.content, form.projectTag, form.format]);
 
   const handleDelete = async () => {
     if (!user || !noteId || noteId === "new") return;
@@ -163,9 +192,9 @@ export default function NoteDetailPage() {
 
           {lastSaved && (
             <div className="hidden md:flex items-center gap-2 text-zinc-500 mr-2">
-              <Clock size={12} />
+              <Clock size={12} className={cn(isSaving && "animate-spin text-primary")} />
               <span className="text-[10px] font-bold uppercase tracking-widest">
-                Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {isSaving ? "Syncing..." : `Saved ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
               </span>
             </div>
           )}
@@ -179,7 +208,7 @@ export default function NoteDetailPage() {
           </button>
 
           <button
-            onClick={handleSave}
+            onClick={() => handleSave(false)}
             disabled={isSaving}
             className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-glow shadow-primary/10 transition-all flex items-center gap-2 disabled:opacity-50"
           >
