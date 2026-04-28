@@ -11,6 +11,7 @@ import { useToast } from "@/context/ToastContext";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useHistory } from "@/hooks/useHistory";
 
 export default function NoteDetailPage() {
   const { user, loading } = useAuth();
@@ -23,6 +24,7 @@ export default function NoteDetailPage() {
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const { logInteraction } = useHistory();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -90,6 +92,7 @@ export default function NoteDetailPage() {
         });
         setLastSaved(new Date());
         if (!isAuto) showToast("Thought Initialized", "success");
+        logInteraction({ title: "New Note", url: "", category: "Vault", type: "note" });
         // Use replace to avoid "new" in history
         router.replace(`/notes/${docRef.id}`);
       } else {

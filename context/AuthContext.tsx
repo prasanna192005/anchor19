@@ -41,14 +41,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Restore token only if it hasn't expired
-    const savedToken = sessionStorage.getItem("gdrive_token");
-    const savedExpiry = sessionStorage.getItem("gdrive_token_expiry");
+    const savedToken = localStorage.getItem("gdrive_token");
+    const savedExpiry = localStorage.getItem("gdrive_token_expiry");
     if (savedToken && savedExpiry && Date.now() < parseInt(savedExpiry)) {
       setGdriveToken(savedToken);
     } else {
       // Token expired — clear stale data
-      sessionStorage.removeItem("gdrive_token");
-      sessionStorage.removeItem("gdrive_token_expiry");
+      localStorage.removeItem("gdrive_token");
+      localStorage.removeItem("gdrive_token_expiry");
     }
   }, []);
 
@@ -80,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const client = (window as any).google.accounts.oauth2.initTokenClient({
         client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
         scope: "https://www.googleapis.com/auth/drive.metadata.readonly",
+        prompt: "", // Try to silently refresh if they already consented
         callback: (response: any) => {
           if (response.error) {
             console.error("GDrive Auth Callback Error:", response.error);
@@ -88,8 +89,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
           if (response.access_token) {
             setGdriveToken(response.access_token);
-            sessionStorage.setItem("gdrive_token", response.access_token);
-            sessionStorage.setItem("gdrive_token_expiry", String(Date.now() + TOKEN_EXPIRY_MS));
+            localStorage.setItem("gdrive_token", response.access_token);
+            localStorage.setItem("gdrive_token_expiry", String(Date.now() + TOKEN_EXPIRY_MS));
             showToast("Google Drive Connected", "success");
           }
         },
@@ -107,8 +108,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const clearDriveToken = () => {
     setGdriveToken(null);
-    sessionStorage.removeItem("gdrive_token");
-    sessionStorage.removeItem("gdrive_token_expiry");
+    localStorage.removeItem("gdrive_token");
+    localStorage.removeItem("gdrive_token_expiry");
   };
 
   const logOut = async () => {

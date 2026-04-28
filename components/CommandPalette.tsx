@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { 
   Search, LayoutDashboard, CheckSquare, Link as LinkIcon, HardDrive, 
   StickyNote, FileText, Table, Presentation, ArrowRight, Folder,
-  Database, Trash2, Mic, Edit2, MoveRight, Zap, Sparkles, Copy
+  Database, Trash2, Mic, Edit2, MoveRight, Zap, Sparkles, Copy, Command as CommandIcon
 } from "lucide-react";
 import { 
   collection, query, addDoc, serverTimestamp, limit,
@@ -349,6 +349,23 @@ export default function CommandPalette() {
         setTabHint(null);
       }
 
+      // ── 1.5 Command Autocomplete (Ghost text) ────────────────
+      if (!activeMentionSuggestion) {
+        const commands = ["todo ", "task ", "note ", "rename @", "move @", "link @", "del @", "delete @", "frame: "];
+        const cmdMatch = commands.find(cmd => cmd.startsWith(q) && q.length > 0 && q !== cmd);
+        if (cmdMatch) {
+          setTabHint(cmdMatch.slice(q.length));
+          smart.push({
+            id: `cmd-hint`, title: cmdMatch, category: "Suggestions", icon: CommandIcon,
+            _internal: () => {
+              setQueryText(cmdMatch);
+              setTabHint(null);
+              setTimeout(() => inputRef.current?.focus(), 10);
+            }
+          });
+        }
+      }
+
       // ── 2. Partial NLP Prompts (guide the user) ──────────────
       if (/^rename\s+@[\w\s]*$/i.test(raw) && !raw.includes(" to ")) {
         smart.push({ id: "hint-rename", title: `rename @ItemName to @NewName`, icon: Edit2, category: "Hint — type to complete", _internal: () => {} });
@@ -514,7 +531,7 @@ export default function CommandPalette() {
               <Search className={cn("text-zinc-600 transition-colors shrink-0", queryText && "text-primary")} size={22} />
               <div className="relative flex-1 min-w-0">
                 {/* Ghost text overlay */}
-                {tabHint && currentPart && (
+                {tabHint && (
                   <div aria-hidden className="absolute inset-0 flex items-center pointer-events-none">
                     <span className="text-xl font-bold tracking-tight text-transparent">{beforeCursor}</span>
                     <span className="text-xl font-bold tracking-tight text-zinc-700">{tabHint}</span>

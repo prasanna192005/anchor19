@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/context/ToastContext";
 import { useLinking } from "@/context/LinkingContext";
 import { useKeyboardActions } from "@/hooks/useKeyboardActions";
+import { useHistory } from "@/hooks/useHistory";
 import { 
   CheckSquare, 
   Link as LinkIcon, 
@@ -85,6 +86,7 @@ export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [quickInput, setQuickInput] = useState("");
   const [isCapturing, setIsCapturing] = useState(false);
+  const { logInteraction } = useHistory();
 
   // Inline Renaming State
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -202,6 +204,7 @@ export default function Dashboard() {
         createdAt: serverTimestamp(),
       });
       setQuickInput("");
+      logInteraction({ title: quickInput, url: "", category: "Tasks", type: "task" });
       showToast("Objective Initialized", "success");
     } catch (e) {
       console.error(e);
@@ -214,6 +217,7 @@ export default function Dashboard() {
   const toggleTodoDone = async (todo: any) => {
     if (!user) return;
     await updateDoc(doc(db, `users/${user.uid}/todos`, todo.id), { status: "Done" });
+    logInteraction({ title: `Completed: ${todo.title}`, url: "", category: "Tasks", type: "task" });
     showToast("Task Commited", "info");
   };
 

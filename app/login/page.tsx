@@ -138,9 +138,12 @@ export default function LoginPage() {
                 >
                   Learn_The_Philosophy
                 </Link>
-                {/* <p className="mt-4 text-outline text-[10px] leading-relaxed uppercase tracking-widest text-center">
-                  Enterprise security protocols active. All access is logged.
-                </p> */}
+                <Link 
+                  href="/how-to-use" 
+                  className="w-full border border-white/10 bg-transparent py-4 px-8 font-sans font-black uppercase tracking-widest text-[10px] text-zinc-600 hover:bg-white/5 hover:text-white transition-all text-center rounded-sm"
+                >
+                  Read_The_Manual
+                </Link>
               </div>
             </motion.div>
             <p className="mt-8 text-center text-outline-variant text-[10px] uppercase tracking-widest">

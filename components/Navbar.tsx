@@ -14,7 +14,8 @@ import {
   LogOut,
   Command as CommandIcon,
   Folder,
-  Clock
+  Clock,
+  Terminal
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const navItems = [
   { name: "projects", href: "/projects", icon: Folder },
   { name: "notes", href: "/notes", icon: StickyNote },
   { name: "history", href: "/history", icon: Clock },
+  { name: "guide", href: "/how-to-use", icon: Terminal },
 ];
 
 export default function Navbar() {
