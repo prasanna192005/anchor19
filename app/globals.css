@@ -108,6 +108,23 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Custom styled scrollbars for the terminal aesthetic */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(24, 24, 27, 0.5); /* zinc-900 with opacity */
+    border-radius: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(63, 63, 70, 0.8); /* zinc-700 with opacity */
+    border-radius: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(161, 161, 170, 0.8); /* zinc-400 */
+  }
 }
 
 * {

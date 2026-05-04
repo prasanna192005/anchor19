@@ -2,259 +2,339 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
-  ArrowLeft,
-  Command as CommandIcon,
-  Search,
-  Zap,
-  Terminal as TerminalIcon,
-  CheckSquare,
-  StickyNote,
-  Hash,
-  Keyboard,
-  Link as LinkIcon,
-  Plus
+  ArrowLeft, Command as CommandIcon, Search, Zap, 
+  Terminal as TerminalIcon, CheckSquare, StickyNote, 
+  Hash, Keyboard, Link as LinkIcon, Plus, BookOpen,
+  MousePointer2, Network, Clock
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
-const GlitchText = ({ text }: { text: string }) => {
-  return (
-    <span className="relative inline-block group">
-      <span className="relative z-10">{text}</span>
-      <span className="absolute top-0 left-0 -z-10 text-primary opacity-0 group-hover:opacity-70 group-hover:translate-x-[2px] group-hover:-translate-y-[1px] transition-all duration-75">
-        {text}
-      </span>
-      <span className="absolute top-0 left-0 -z-10 text-accent opacity-0 group-hover:opacity-70 group-hover:-translate-x-[2px] group-hover:translate-y-[1px] transition-all duration-75">
-        {text}
-      </span>
-    </span>
-  );
-};
+const sections = [
+  { id: "intro", title: "00. Getting Started", icon: BookOpen },
+  { id: "palette", title: "01. Command Palette", icon: CommandIcon },
+  { id: "navigation", title: "02. UI & Navigation", icon: MousePointer2 },
+  { id: "canvas", title: "03. Infinite Canvas", icon: Network },
+  { id: "vault", title: "04. Resource Vault", icon: LinkIcon },
+  { id: "timeline", title: "05. Activity Trace", icon: Clock },
+];
 
 export default function HowToUse() {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [activeSection, setActiveSection] = useState("intro");
+
   useEffect(() => setMounted(true), []);
+
+  // ScrollSpy Logic
+  useEffect(() => {
+    const observers = new Map();
+    
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    const observerOptions = {
+      root: null,
+      rootMargin: "-20% 0px -60% 0px",
+      threshold: 0,
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+    sections.forEach((section) => {
+      const element = document.getElementById(section.id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [mounted]);
 
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-400 font-sans selection:bg-primary selection:text-black overflow-x-hidden pb-40">
+    <div className="min-h-screen bg-[#050505] text-zinc-400 font-sans selection:bg-primary selection:text-black overflow-x-hidden">
       
-      {/* CRT Scanline Overlay */}
-      <div className="fixed inset-0 pointer-events-none z-[100] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.05)_50%),linear-gradient(90deg,rgba(255,0,0,0.01),rgba(0,255,0,0.005),rgba(0,0,255,0.01))] bg-[length:100%_4px,3px_100%] opacity-30" />
-
-      {/* Decorative Grids */}
+      {/* Background Grids */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(174,213,0,0.03)_0%,transparent_70%)]" />
-        <div className="absolute inset-0 bg-mesh opacity-10" />
+        <div className="absolute inset-0 bg-mesh opacity-[0.03]" />
       </div>
 
-      <div className="relative z-10">
-        
-        {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 p-8 lg:px-16 flex justify-between items-center mix-blend-difference z-50">
-          <Link href="/" className="group flex items-center gap-4 text-white hover:text-primary transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center backdrop-blur-xl group-hover:scale-110 transition-transform">
-              <ArrowLeft size={18} />
-            </div>
-            <span className="font-black tracking-tighter uppercase text-sm">Return_Home</span>
-          </Link>
-          
-          <div className="flex items-center gap-8">
-            <div className="hidden md:flex flex-col items-end text-[8px] font-mono font-black tracking-[0.4em] uppercase opacity-40">
-              <span>Station: 19-DELTA</span>
-              <span>Manual: V1.0</span>
-            </div>
-            {!user && (
-              <Link href="/login" className="px-6 py-2 rounded-full border border-white text-white font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all">
-                Access_Vault
-              </Link>
-            )}
+      {/* Top Navigation */}
+      <nav className="fixed top-0 left-0 right-0 p-8 lg:pr-16 lg:pl-32 flex justify-between items-center mix-blend-difference z-50 pointer-events-none">
+        <Link href="/" className="group flex items-center gap-4 text-white hover:text-primary transition-colors pointer-events-auto">
+          <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center backdrop-blur-xl group-hover:scale-110 transition-transform">
+            <ArrowLeft size={18} />
           </div>
-        </nav>
+          <span className="font-black tracking-tighter uppercase text-sm">Return_Home</span>
+        </Link>
+        
+        <div className="flex items-center gap-6 pointer-events-auto">
+          {!user && (
+            <Link href="/login" className="px-6 py-2 rounded-full border border-white text-white font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all">
+              Access_Vault
+            </Link>
+          )}
+        </div>
+      </nav>
 
-        {/* Header Section */}
-        <section className="pt-40 px-8 lg:px-24 max-w-[1400px] mx-auto text-center space-y-6">
-            <div className="flex items-center justify-center gap-3 text-primary font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-8">
-              <TerminalIcon size={14} />
-              <span>Operational_Guidelines</span>
+      <div className="relative z-10 flex max-w-[1600px] mx-auto pt-24 h-screen">
+        
+        {/* Left Sidebar (Sticky) */}
+        <aside className="w-72 hidden lg:flex flex-col shrink-0 h-[calc(100vh-6rem)] sticky top-24 px-12 py-10 border-r border-white/5 custom-scrollbar">
+          <div className="mb-10">
+            <h2 className="text-white font-black text-2xl tracking-tighter uppercase italic">Manual.</h2>
+            <p className="text-zinc-500 text-[10px] font-mono uppercase tracking-[0.3em] mt-1">Anchor19 Engine</p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {sections.map((section) => {
+              const isActive = activeSection === section.id;
+              const Icon = section.icon;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth" })}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left text-sm font-bold uppercase tracking-wider relative overflow-hidden group",
+                    isActive ? "text-primary bg-primary/10 border border-primary/20" : "text-zinc-500 hover:text-white hover:bg-zinc-900/50 border border-transparent"
+                  )}
+                >
+                  <Icon size={16} className={cn("shrink-0 transition-colors", isActive ? "text-primary" : "text-zinc-600 group-hover:text-white")} />
+                  <span className="relative z-10">{section.title.split('. ')[1]}</span>
+                  {isActive && (
+                    <motion.div 
+                      layoutId="doc-nav-glow"
+                      className="absolute left-0 w-1 h-full bg-primary shadow-[0_0_15px_rgba(209,255,0,0.8)]"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        {/* Main Documentation Content */}
+        <main className="flex-1 px-8 lg:px-24 py-10 pb-64 overflow-y-auto custom-scrollbar h-[calc(100vh-6rem)] scroll-smooth">
+          
+          {/* 00. Intro */}
+          <section id="intro" className="mb-32 scroll-mt-32">
+            <div className="flex items-center gap-3 text-primary font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
+              <TerminalIcon size={14} /> <span>00 // Getting_Started</span>
             </div>
-            <h1 className="text-5xl lg:text-8xl font-black tracking-tighter text-white uppercase italic">
-              <GlitchText text="SYSTEM" /> <br/>PROTOCOL
+            <h1 className="text-4xl lg:text-7xl font-black tracking-tighter text-white uppercase italic mb-8">
+              Welcome to<br/>Anchor19.
             </h1>
-            <p className="text-xl text-zinc-500 font-medium max-w-2xl mx-auto pt-4">
-              Anchor19 is not a typical note-taking app. It is a high-speed command center. Learn the core protocols to execute without friction.
+            <div className="prose prose-invert max-w-none">
+              <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-6">
+                Anchor19 is a high-speed, local-first command center designed for rapid thought capture and seamless organization. 
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+                <div className="bg-zinc-900/40 border border-zinc-800/50 rounded-2xl p-6">
+                  <h3 className="text-white font-bold uppercase tracking-widest text-sm mb-3">For New Users</h3>
+                  <p className="text-sm text-zinc-500 leading-relaxed">
+                    Think of Anchor19 as your digital brain. Don't worry about organizing things into strict folders. Just dump your notes, links, and tasks into the dashboard, and use the powerful search to find them later.
+                  </p>
+                </div>
+                <div className="bg-zinc-900/40 border border-zinc-800/50 rounded-2xl p-6">
+                  <h3 className="text-primary font-bold uppercase tracking-widest text-sm mb-3">For Techies</h3>
+                  <p className="text-sm text-zinc-500 leading-relaxed">
+                    Anchor19 relies on NLP (Natural Language Processing) and keyboard-first interactions. Every note or task is a node in a flat graph, bound together by metadata tags rather than hierarchical file paths.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 01. Palette */}
+          <section id="palette" className="mb-32 scroll-mt-32">
+             <div className="flex items-center gap-3 text-accent font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
+              <CommandIcon size={14} /> <span>01 // Core_Engine</span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white uppercase mb-8">The Command Palette.</h2>
+            <p className="text-lg text-zinc-400 leading-relaxed mb-10">
+              The mouse is slow. The Command Palette is the nervous system of Anchor19. Press <kbd className="px-2 py-1 bg-zinc-800 rounded font-mono text-white text-sm border border-zinc-700 mx-1 shadow-sm">Ctrl + K</kbd> anywhere in the app to summon it.
             </p>
-        </section>
 
-        {/* 1. Universal Search / Command Palette */}
-        <section className="py-32 px-8 lg:px-24 max-w-[1200px] mx-auto">
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-             <div className="order-2 lg:order-1 p-12 rounded-[3rem] bg-zinc-900/20 border border-zinc-800/40 backdrop-blur-3xl relative overflow-hidden group shadow-2xl">
-                 <div className="absolute top-0 right-0 p-8 opacity-5">
-                   <CommandIcon size={120} />
-                 </div>
-                 
-                 <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl relative z-10">
-                    <div className="flex items-center gap-4 text-zinc-500 mb-6 border-b border-zinc-800 pb-4">
-                       <Search size={18} />
-                       <span className="font-mono text-sm">Search or jump to...</span>
-                    </div>
-                    <div className="space-y-3">
-                       <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/20 text-primary">
-                          <div className="flex items-center gap-3"><Zap size={16} /> <span className="font-bold text-sm">Todo Prepare presentation</span></div>
-                          <kbd className="font-mono text-[10px] uppercase">↵ Execute</kbd>
-                       </div>
-                       <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 text-zinc-400">
-                          <div className="flex items-center gap-3"><StickyNote size={16} /> <span className="font-bold text-sm">Note Meeting minutes</span></div>
-                       </div>
-                       <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 text-zinc-400">
-                          <div className="flex items-center gap-3"><CommandIcon size={16} /> <span className="font-bold text-sm">dark mode</span></div>
-                       </div>
-                    </div>
-                 </div>
-             </div>
-             
-             <div className="order-1 lg:order-2 space-y-6">
-                <span className="text-accent font-black uppercase tracking-[0.4em] text-[10px] font-mono">01 // COMMAND_CENTER</span>
-                <h2 className="text-4xl lg:text-6xl font-black tracking-tighter text-white uppercase">The Palette.</h2>
-                <p className="text-lg text-zinc-400 leading-relaxed">
-                  Your mouse is too slow. The Command Palette is the nervous system of Anchor19. It instantly searches notes, tasks, files, and links.
-                </p>
-                
-                <div className="space-y-4 pt-4">
-                   <div className="flex items-start gap-4 border-b border-zinc-900/50 pb-4">
-                     <kbd className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white font-mono font-bold whitespace-nowrap shadow-md text-sm">Ctrl + K</kbd>
-                     <div>
-                       <h4 className="text-white font-bold uppercase tracking-widest text-xs">Summon the Palette</h4>
-                       <p className="text-zinc-500 text-sm mt-1">Works globally. Type to instantly search across all Projects, Notes, Links, and Drive files.</p>
-                     </div>
-                   </div>
-                   <div className="flex items-start gap-4 border-b border-zinc-900/50 pb-4">
-                     <span className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-primary font-mono font-bold whitespace-nowrap shadow-md text-sm">todo [text]</span>
-                     <div>
-                       <h4 className="text-white font-bold uppercase tracking-widest text-xs">Fast Creation</h4>
-                       <p className="text-zinc-500 text-sm mt-1">Type <code>todo [task]</code> or <code>note [content]</code> to instantly create items.</p>
-                     </div>
-                   </div>
-                   <div className="flex items-start gap-4 border-b border-zinc-900/50 pb-4">
-                     <span className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white font-mono font-bold whitespace-nowrap shadow-md text-sm">rename @[item] to @[name]</span>
-                     <div>
-                       <h4 className="text-white font-bold uppercase tracking-widest text-xs">NLP Rename</h4>
-                       <p className="text-zinc-500 text-sm mt-1">Use <code>@</code> to mention any item in your workspace and rename it instantly.</p>
-                     </div>
-                   </div>
-                   <div className="flex items-start gap-4 border-b border-zinc-900/50 pb-4">
-                     <span className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white font-mono font-bold whitespace-nowrap shadow-md text-sm">move @[item] to @[project]</span>
-                     <div>
-                       <h4 className="text-white font-bold uppercase tracking-widest text-xs">NLP Organization</h4>
-                       <p className="text-zinc-500 text-sm mt-1">Move a note, task, or file into a specific Project Silo without dragging.</p>
-                     </div>
-                   </div>
-                   <div className="flex items-start gap-4 border-b border-zinc-900/50 pb-4">
-                     <span className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-accent font-mono font-bold whitespace-nowrap shadow-md text-sm">frame: [tone] [text]</span>
-                     <div>
-                       <h4 className="text-white font-bold uppercase tracking-widest text-xs">AI Text Framing</h4>
-                       <p className="text-zinc-500 text-sm mt-1">Type <code>frame: formal [text]</code> or <code>frame: casual [text]</code> to have AI rewrite it and copy to clipboard.</p>
-                     </div>
-                   </div>
-                   <div className="flex items-start gap-4 border-b border-zinc-900/50 pb-4">
-                     <span className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-red-500 font-mono font-bold whitespace-nowrap shadow-md text-sm">del @[item]</span>
-                     <div>
-                       <h4 className="text-white font-bold uppercase tracking-widest text-xs">NLP Deletion</h4>
-                       <p className="text-zinc-500 text-sm mt-1">Type <code>delete @[item]</code> to quickly purge a specific record from the system.</p>
-                     </div>
-                   </div>
-                   <div className="flex items-start gap-4">
-                     <kbd className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white font-mono font-bold whitespace-nowrap shadow-md text-sm">Ctrl + Z</kbd>
-                     <div>
-                       <h4 className="text-white font-bold uppercase tracking-widest text-xs">System Undo</h4>
-                       <p className="text-zinc-500 text-sm mt-1">Press <kbd className="px-1 py-0.5 bg-zinc-800 rounded">Ctrl+Z</kbd> outside the palette to instantly undo the last deletion, rename, or move.</p>
-                     </div>
-                   </div>
+            <div className="bg-zinc-900/20 border border-zinc-800/40 rounded-[2rem] p-8 lg:p-12 backdrop-blur-sm relative overflow-hidden mb-12">
+              <div className="absolute -right-10 -top-10 opacity-[0.03]">
+                <CommandIcon size={250} />
+              </div>
+              <h3 className="text-white font-bold text-xl mb-6">NLP Commands Reference</h3>
+              <div className="space-y-4 relative z-10">
+                <CommandRow 
+                  cmd="todo [task]" 
+                  desc="Instantly creates a new checkbox task on your dashboard." 
+                  example="todo Prepare Q3 presentation for marketing"
+                />
+                <CommandRow 
+                  cmd="note [title]" 
+                  desc="Creates a fresh markdown note and opens the editor." 
+                  example="note Meeting minutes 05/12"
+                />
+                <CommandRow 
+                  cmd="rename @[item] to [new]" 
+                  desc="Selects an existing node and renames it without opening it." 
+                  example="rename @Meeting_Notes to @Archived_Notes"
+                  highlight
+                />
+                <CommandRow 
+                  cmd="move @[item] to @[project]" 
+                  desc="Transfers an item into a project silo without drag-and-drop." 
+                  example="move @Wireframes to @Project_Apollo"
+                  highlight
+                />
+                <CommandRow 
+                  cmd="del @[item]" 
+                  desc="Rapid deletion of an item." 
+                  example="del @Old_Invoice"
+                  alert
+                />
+              </div>
+            </div>
+            
+            <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 text-primary">
+              <p className="text-sm font-bold flex items-center gap-3">
+                <Zap size={18} /> Pro Tip: You can press Tab while typing a command to auto-complete it!
+              </p>
+            </div>
+          </section>
+
+          {/* 02. Navigation */}
+          <section id="navigation" className="mb-32 scroll-mt-32">
+             <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
+              <MousePointer2 size={14} /> <span>02 // Interface</span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white uppercase mb-8">Adaptive Navigation.</h2>
+            <p className="text-lg text-zinc-400 leading-relaxed mb-10">
+              Anchor19 respects your screen real estate. The sidebar adapts to your working style dynamically.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="p-8 rounded-[2rem] bg-zinc-900/40 border border-zinc-800/50">
+                <div className="w-12 h-12 rounded-xl bg-zinc-800 flex items-center justify-center mb-6">
+                  <MousePointer2 className="text-white" size={20} />
                 </div>
-             </div>
-           </div>
-        </section>
-
-        {/* 2. The Core Loop */}
-        <section className="py-32 px-8 lg:px-24 max-w-[1200px] mx-auto border-t border-zinc-900/50">
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-             
-             <div className="space-y-6">
-                <span className="text-primary font-black uppercase tracking-[0.4em] text-[10px] font-mono">02 // DATA_INGESTION</span>
-                <h2 className="text-4xl lg:text-6xl font-black tracking-tighter text-white uppercase">Quick Capture.</h2>
-                <p className="text-lg text-zinc-400 leading-relaxed">
-                  Ideas are volatile. When a thought hits, you need to save it before the context is lost. Do not organize. Just capture.
+                <h3 className="text-white font-black text-xl uppercase mb-3">Hover to Peek</h3>
+                <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+                  By default, the sidebar is collapsed to maximize your workspace. Simply move your mouse over the icons on the left edge, and the sidebar will smoothly expand over the content to reveal full labels.
                 </p>
-                <div className="flex flex-col gap-6 pt-4">
-                   <div className="p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800">
-                     <div className="flex items-center gap-3 text-white mb-2"><CheckSquare size={18} className="text-primary" /> <h4 className="font-bold uppercase tracking-widest text-xs">Dashboard Input</h4></div>
-                     <p className="text-sm text-zinc-500">The main dashboard has a massive input field. Type a task, hit Enter. It's immediately logged as an active objective.</p>
-                   </div>
-                   <div className="p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800">
-                     <div className="flex items-center gap-3 text-white mb-2"><Keyboard size={18} className="text-accent" /> <h4 className="font-bold uppercase tracking-widest text-xs">Auto-Save Editor</h4></div>
-                     <p className="text-sm text-zinc-500">Notes save themselves 3 seconds after you stop typing. The system handles the persistence; you handle the thinking.</p>
-                   </div>
-                </div>
-             </div>
+              </div>
 
-             <div className="p-12 rounded-[3rem] bg-zinc-900/20 border border-zinc-800/40 backdrop-blur-3xl relative overflow-hidden group shadow-2xl flex flex-col gap-6">
-                <div className="relative group">
-                   <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                     <Plus size={16} className="text-primary" />
-                   </div>
-                   <input 
-                     type="text"
-                     disabled
-                     value="Initialize new objective..."
-                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-4 pl-12 pr-6 text-sm font-bold text-zinc-600 outline-none"
-                   />
+              <div className="p-8 rounded-[2rem] bg-zinc-900/40 border border-zinc-800/50">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
+                  <Keyboard className="text-primary" size={20} />
                 </div>
-                <div className="p-4 rounded-xl bg-zinc-950/50 border border-dashed border-zinc-800 flex items-center gap-4">
-                   <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(209,255,0,0.8)]" />
-                   <span className="text-xs font-mono font-bold text-white tracking-widest uppercase">System Syncing...</span>
-                </div>
-             </div>
-             
-           </div>
-        </section>
-
-        {/* 3. Project Tags */}
-        <section className="py-32 px-8 lg:px-24 max-w-[1200px] mx-auto border-t border-zinc-900/50">
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-             <div className="order-2 lg:order-1 p-12 rounded-[3rem] bg-zinc-900/20 border border-zinc-800/40 backdrop-blur-3xl relative overflow-hidden group shadow-2xl">
-                 <div className="space-y-4">
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-zinc-950 border border-zinc-800 w-fit">
-                      <Hash size={14} className="text-primary" />
-                      <span className="text-xs font-black uppercase tracking-widest text-white">MARKETING_Q3</span>
-                    </div>
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-zinc-950 border border-zinc-800 w-fit opacity-70">
-                      <Hash size={14} className="text-accent" />
-                      <span className="text-xs font-black uppercase tracking-widest text-zinc-300">SYSTEM_REFACTOR</span>
-                    </div>
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-zinc-950 border border-zinc-800 w-fit opacity-40">
-                      <Hash size={14} className="text-zinc-500" />
-                      <span className="text-xs font-black uppercase tracking-widest text-zinc-500">GENERAL</span>
-                    </div>
-                 </div>
-             </div>
-             
-             <div className="order-1 lg:order-2 space-y-6">
-                <span className="text-zinc-500 font-black uppercase tracking-[0.4em] text-[10px] font-mono">03 // ORGANIZATION</span>
-                <h2 className="text-4xl lg:text-6xl font-black tracking-tighter text-white uppercase">The Silos.</h2>
-                <p className="text-lg text-zinc-400 leading-relaxed">
-                  Folders are rigid. Anchor19 uses Project Tags (`#`) to group context. A single word links Notes, Tasks, and Links together across the platform.
+                <h3 className="text-white font-black text-xl uppercase mb-3">Pin with Ctrl+B</h3>
+                <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+                  Doing heavy navigation? Press <kbd className="font-mono text-xs text-white bg-zinc-800 px-1.5 py-0.5 rounded mx-1">Ctrl+B</kbd> (or Cmd+B) anywhere. The sidebar will permanently lock into the expanded state and push your dashboard content over perfectly.
                 </p>
-                <p className="text-sm text-zinc-500 font-medium leading-relaxed">
-                  In the note editor, look for the Hash icon in the top left. Type a project name (like <span className="text-primary">ALPHA</span>). Now, when you search "Alpha" in the Command Palette, that note will immediately surface.
-                </p>
-             </div>
-           </div>
-        </section>
+              </div>
+            </div>
+          </section>
 
+          {/* 03. Canvas */}
+          <section id="canvas" className="mb-32 scroll-mt-32">
+             <div className="flex items-center gap-3 text-accent font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
+              <Network size={14} /> <span>03 // Spatial_UI</span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white uppercase mb-8">Infinite Canvas.</h2>
+            <p className="text-lg text-zinc-400 leading-relaxed mb-10">
+              The <strong>Projects</strong> view ditches the standard list view for a fully functional spatial canvas powered by React Flow.
+            </p>
+
+            <div className="bg-zinc-900/20 border border-zinc-800/40 rounded-[2rem] p-8 backdrop-blur-sm relative overflow-hidden">
+               <ul className="space-y-6">
+                 <li className="flex gap-4">
+                   <div className="mt-1 w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center shrink-0 text-white text-xs font-bold">1</div>
+                   <div>
+                     <h4 className="text-white font-bold text-lg mb-1">Spatial Memory</h4>
+                     <p className="text-zinc-500 text-sm">Humans remember *where* things are better than *what* they are named. Drag project nodes around the canvas to group related initiatives physically.</p>
+                   </div>
+                 </li>
+                 <li className="flex gap-4">
+                   <div className="mt-1 w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center shrink-0 text-white text-xs font-bold">2</div>
+                   <div>
+                     <h4 className="text-white font-bold text-lg mb-1">Edge Connections</h4>
+                     <p className="text-zinc-500 text-sm">Click and drag between handles on project cards to draw relationships between them, creating a visual map of dependencies.</p>
+                   </div>
+                 </li>
+                 <li className="flex gap-4">
+                   <div className="mt-1 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 text-xs font-bold">3</div>
+                   <div>
+                     <h4 className="text-white font-bold text-lg mb-1">Deep Dive</h4>
+                     <p className="text-zinc-500 text-sm">Double-click any project node to dive into its dedicated silo, filtering all tasks, notes, and links globally to match that project.</p>
+                   </div>
+                 </li>
+               </ul>
+            </div>
+          </section>
+
+          {/* 04. Vault */}
+          <section id="vault" className="mb-32 scroll-mt-32">
+             <div className="flex items-center gap-3 text-primary font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
+              <LinkIcon size={14} /> <span>04 // Resources</span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white uppercase mb-8">The Vault.</h2>
+            <p className="text-lg text-zinc-400 leading-relaxed mb-10">
+              The <strong>Links</strong> section is your curated resource vault. We automatically pull favicons and organize your links into perfectly aligned masonry grids.
+            </p>
+            
+            <div className="p-8 rounded-[2rem] bg-zinc-900/40 border border-zinc-800/50">
+               <h3 className="text-white font-bold text-xl mb-4">Tag Filtering</h3>
+               <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+                 When saving a link, assign it a tag (like <code className="text-primary bg-primary/10 px-1 rounded">DevTools</code> or <code className="text-accent bg-accent/10 px-1 rounded">Inspo</code>). The vault automatically generates a horizontally scrolling filter bar at the top of the page. Click a tag to instantly filter your massive link library without reloading.
+               </p>
+               <h3 className="text-white font-bold text-xl mb-4">Right-Click Context Menu</h3>
+               <p className="text-zinc-500 text-sm leading-relaxed">
+                 Don't forget to right-click links! The custom context menu lets you copy the URL, edit the metadata, or pin the link to the top of your vault.
+               </p>
+            </div>
+          </section>
+
+          {/* 05. Timeline */}
+          <section id="timeline" className="mb-32 scroll-mt-32">
+             <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
+              <Clock size={14} /> <span>05 // Auditing</span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white uppercase mb-8">Activity Trace.</h2>
+            <p className="text-lg text-zinc-400 leading-relaxed mb-10">
+              The <strong>History</strong> page provides an immutable, chronological trace of your interactions. Every time you open a note, click a link, or modify a task, the engine silently logs it. Use this to retrace your steps or remember what you were working on yesterday.
+            </p>
+          </section>
+
+        </main>
+      </div>
+    </div>
+  );
+}
+
+// Helper component for the Command Palette section
+function CommandRow({ cmd, desc, example, highlight = false, alert = false }: { cmd: string, desc: string, example: string, highlight?: boolean, alert?: boolean }) {
+  return (
+    <div className="flex flex-col md:flex-row md:items-start gap-4 p-5 rounded-2xl bg-zinc-950/50 border border-zinc-800 hover:border-zinc-700 transition-colors">
+      <div className="md:w-1/3 shrink-0">
+        <code className={cn(
+          "px-3 py-1.5 rounded-lg font-mono font-bold text-sm inline-block shadow-sm",
+          alert ? "bg-red-500/10 text-red-500 border border-red-500/20" :
+          highlight ? "bg-white/5 text-white border border-white/10" :
+          "bg-primary/10 text-primary border border-primary/20"
+        )}>
+          {cmd}
+        </code>
+      </div>
+      <div className="md:w-2/3">
+        <p className="text-white font-medium text-sm mb-2">{desc}</p>
+        <p className="text-zinc-500 text-xs font-mono bg-black/50 p-2 rounded-lg border border-white/5 truncate">
+          <span className="opacity-50 select-none">{'> '}</span>{example}
+        </p>
       </div>
     </div>
   );

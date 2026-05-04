@@ -208,7 +208,7 @@ export default function LinksPage() {
       </header>
 
       {/* Filter Bar */}
-      <div className="flex items-center gap-3 overflow-x-auto pb-4 no-scrollbar">
+      <div className="flex items-center gap-3 overflow-x-auto pb-4 custom-scrollbar">
         {categories.map(cat => (
           <button
             key={cat}

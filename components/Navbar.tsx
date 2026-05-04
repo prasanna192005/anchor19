@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -31,21 +31,48 @@ const navItems = [
   { name: "guide", href: "/how-to-use", icon: Terminal },
 ];
 
-export default function Navbar() {
+export default function Navbar({ 
+  isPinned = false,
+  onHoverChange
+}: { 
+  isPinned?: boolean;
+  onHoverChange?: (hovered: boolean) => void;
+}) {
   const pathname = usePathname();
   const { user, logOut } = useAuth();
+  const [isHovered, setIsHovered] = useState(false);
 
   if (!user) return null;
 
+  const isExpanded = isPinned || isHovered;
+  const isCollapsed = !isExpanded;
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    if (onHoverChange) onHoverChange(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (onHoverChange) onHoverChange(false);
+  };
+
   return (
-    <nav className="fixed left-0 top-0 h-full w-20 lg:w-64 flex flex-col py-10 bg-zinc-950 border-r border-zinc-900 z-[100] transition-all duration-500">
+    <nav 
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={cn(
+        "fixed left-0 top-0 h-full flex flex-col py-10 bg-zinc-950 border-r border-zinc-900 z-[100] transition-all duration-500",
+        isCollapsed ? "w-20" : "w-20 lg:w-64"
+      )}
+    >
       {/* Hardware Logo Segment */}
-      <div className="px-6 lg:px-10 mb-16">
+      <div className={cn("px-6 lg:px-10 mb-16", isCollapsed && "lg:px-0 lg:flex lg:justify-center")}>
         <Link href="/" className="flex items-center gap-4 group">
           <div className="w-10 h-10 rounded-full border border-zinc-700 flex items-center justify-center shrink-0 bg-zinc-900 group-hover:border-primary transition-all duration-500">
             <CommandIcon size={18} className="text-white group-hover:text-primary transition-colors" />
           </div>
-          <div className="hidden lg:flex flex-col">
+          <div className={cn("hidden lg:flex flex-col transition-all duration-500", isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100")}>
             <span className="font-bold text-xl tracking-tight text-zinc-100 leading-none">Anchor19</span>
             <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-zinc-600 mt-1">Workspace</span>
           </div>
@@ -62,19 +89,27 @@ export default function Navbar() {
             <Link
               key={item.name}
               href={item.href}
+              title={isCollapsed ? item.name : ""}
               className={cn(
                 "flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden",
                 isActive 
                   ? "bg-primary/10 text-primary border border-primary/20" 
-                  : "text-zinc-500 hover:text-white hover:bg-zinc-900/50"
+                  : "text-zinc-500 hover:text-white hover:bg-zinc-900/50",
+                isCollapsed && "lg:justify-center lg:px-0"
               )}
             >
               <Icon size={20} className={cn("shrink-0 transition-all duration-500", isActive ? "text-primary scale-110" : "text-zinc-600 group-hover:text-white")} />
-              <span className="hidden lg:block font-bold text-xs uppercase tracking-widest">{item.name}</span>
+              <span className={cn(
+                "hidden lg:block font-bold text-xs uppercase tracking-widest transition-all duration-500",
+                isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+              )}>{item.name}</span>
               {isActive && (
                 <motion.div 
                   layoutId="nav-glow"
-                  className="absolute left-0 w-1 h-6 bg-primary rounded-r-full shadow-[0_0_15px_rgba(209,255,0,0.8)]"
+                  className={cn(
+                    "absolute left-0 w-1 h-6 bg-primary rounded-r-full shadow-[0_0_15px_rgba(209,255,0,0.8)]",
+                    isCollapsed && "hidden lg:block"
+                  )}
                 />
               )}
             </Link>
@@ -83,7 +118,7 @@ export default function Navbar() {
       </div>
 
       {/* Global Shortcut Entry Point */}
-      <div className="hidden lg:flex flex-col gap-4 px-10 mb-8 mt-4">
+      <div className={cn("hidden lg:flex flex-col gap-4 px-10 mb-8 mt-4 transition-all duration-500", isCollapsed && "px-0 items-center")}>
         <div 
           onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
           className="flex items-center gap-4 text-zinc-700 hover:text-white transition-colors cursor-pointer group"
@@ -91,12 +126,14 @@ export default function Navbar() {
            <div className="flex gap-1.5 shrink-0">
               <kbd className="px-1.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-500 font-mono select-none group-hover:border-primary/50 group-hover:text-primary transition-all">⌘K</kbd>
            </div>
-           <span className="text-[10px] font-bold uppercase tracking-[0.2em] leading-tight select-none">Universal_Search</span>
+           <div className={cn("transition-all duration-500", isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100")}>
+             <span className="text-[10px] font-bold uppercase tracking-[0.2em] leading-tight select-none">Universal_Search</span>
+           </div>
         </div>
       </div>
 
       {/* User / Authentication Cluster */}
-      <div className="mt-auto px-4 py-8 border-t border-zinc-900/50">
+      <div className={cn("mt-auto px-4 py-8 border-t border-zinc-900/50", isCollapsed && "px-0 flex justify-center")}>
         <div className="px-2 flex items-center gap-4 group cursor-pointer" onClick={logOut}>
           <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0 bg-zinc-900 flex items-center justify-center transition-all group-hover:border-zinc-700 shadow-soft">
             {user.photoURL ? (
@@ -110,7 +147,7 @@ export default function Navbar() {
               <span className="text-zinc-500 font-bold text-xs uppercase">{user.displayName ? user.displayName[0] : <User size={18} />}</span>
             )}
           </div>
-          <div className="flex-1 min-w-0 hidden lg:block">
+          <div className={cn("flex-1 min-w-0 hidden lg:block transition-all duration-500", isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100")}>
             <p className="text-sm font-bold truncate text-white leading-none tracking-tight">
               {user.displayName ? user.displayName.split(" ")[0] : "User"}
             </p>
