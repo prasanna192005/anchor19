@@ -592,13 +592,13 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
-            className="lg:col-span-6 lg:col-start-7 lg:row-span-1 glass-card rounded-2xl p-6 flex flex-col gap-4 border border-zinc-800/80 shadow-glow shadow-primary/0 hover:shadow-primary/5 transition-all"
+            className="lg:col-span-6 lg:col-start-7 lg:row-span-1 glass-card rounded-2xl p-6 flex flex-col gap-4 border border-zinc-800/80 shadow-glow shadow-primary/0 hover:shadow-primary/5 transition-all overflow-hidden"
           >
             <div className="flex items-center justify-between">
               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Activity Timeline</h2>
               <Link href="/history" className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline">View All</Link>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar-hidden">
               {recentHistory.length > 0 ? recentHistory.map(item => {
                  const Icon = item.category === "Vault" ? LinkIcon : (item.category === "Drive" ? HardDrive : Search);
                  return (

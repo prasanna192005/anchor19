@@ -59,7 +59,7 @@ export default function HowToUse() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-400 font-sans selection:bg-primary selection:text-black overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#050505] text-zinc-400 font-sans selection:bg-primary selection:text-black overflow-x-hidden pb-40">
       
       {/* Background Grids */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -68,7 +68,7 @@ export default function HowToUse() {
       </div>
 
       {/* Top Navigation */}
-      <nav className="fixed top-0 left-0 right-0 p-8 lg:pr-16 lg:pl-32 flex justify-between items-center mix-blend-difference z-50 pointer-events-none">
+      <nav className="w-full p-8 lg:px-16 flex justify-between items-center mix-blend-difference z-50 pointer-events-none absolute top-0 left-0 right-0">
         <Link href="/" className="group flex items-center gap-4 text-white hover:text-primary transition-colors pointer-events-auto">
           <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center backdrop-blur-xl group-hover:scale-110 transition-transform">
             <ArrowLeft size={18} />
