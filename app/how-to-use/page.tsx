@@ -7,7 +7,7 @@ import {
   ArrowLeft, Command as CommandIcon, Search, Zap, 
   Terminal as TerminalIcon, CheckSquare, StickyNote, 
   Hash, Keyboard, Link as LinkIcon, Plus, BookOpen,
-  MousePointer2, Network, Clock
+  MousePointer2, Network, Clock, Edit3, Code, MessageSquare
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -16,9 +16,10 @@ const sections = [
   { id: "intro", title: "00. Getting Started", icon: BookOpen },
   { id: "palette", title: "01. Command Palette", icon: CommandIcon },
   { id: "navigation", title: "02. UI & Navigation", icon: MousePointer2 },
-  { id: "canvas", title: "03. Infinite Canvas", icon: Network },
-  { id: "vault", title: "04. Resource Vault", icon: LinkIcon },
-  { id: "timeline", title: "05. Activity Trace", icon: Clock },
+  { id: "editor", title: "03. Rich Text & Slash Commands", icon: Edit3 },
+  { id: "canvas", title: "04. Infinite Canvas", icon: Network },
+  { id: "vault", title: "05. Resource Vault", icon: LinkIcon },
+  { id: "timeline", title: "06. Activity Trace", icon: Clock },
 ];
 
 export default function HowToUse() {
@@ -240,7 +241,49 @@ export default function HowToUse() {
             </div>
           </section>
 
-          {/* 03. Canvas */}
+          {/* 03. Editor */}
+          <section id="editor" className="mb-32 scroll-mt-32">
+             <div className="flex items-center gap-3 text-secondary font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
+              <Edit3 size={14} /> <span>03 // Knowledge_Capture</span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white uppercase mb-8">Slash Commands.</h2>
+            <p className="text-lg text-zinc-400 leading-relaxed mb-10">
+              The Notes editor is powered by a high-performance, Notion-style slash command engine. Keep your hands on the keyboard and format at the speed of thought.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="p-8 rounded-[2rem] bg-zinc-900/40 border border-zinc-800/50">
+                  <h3 className="text-white font-bold text-xl mb-4">Type <kbd className="px-2 py-1 bg-zinc-800 rounded font-mono text-white text-sm border border-zinc-700 mx-1">/</kbd> to open</h3>
+                  <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+                     Type <code className="text-primary bg-primary/10 px-1 rounded">/</code> anywhere in your note to instantly summon the floating block menu. Use your arrow keys to navigate and hit Enter to inject complex blocks.
+                  </p>
+                  <ul className="space-y-3 text-sm text-zinc-400">
+                     <li className="flex items-center gap-3"><CheckSquare size={16} className="text-primary"/> <strong>Checklists:</strong> Interactive task lists</li>
+                     <li className="flex items-center gap-3"><Code size={16} className="text-zinc-300"/> <strong>Code Blocks:</strong> Monospace pre-formatted blocks</li>
+                     <li className="flex items-center gap-3"><MessageSquare size={16} className="text-secondary"/> <strong>Callouts:</strong> Highlighted attention blocks</li>
+                  </ul>
+               </div>
+
+               <div className="p-8 rounded-[2rem] bg-zinc-900/40 border border-zinc-800/50">
+                  <h3 className="text-white font-bold text-xl mb-4">Block Escaping</h3>
+                  <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+                     Got stuck inside a Code Block or Callout? We've engineered robust escape hatches to keep you moving smoothly.
+                  </p>
+                  <ul className="space-y-4">
+                     <li className="flex gap-4">
+                       <kbd className="px-2 py-1 bg-zinc-800 rounded font-mono text-white text-xs border border-zinc-700 h-fit">Esc</kbd>
+                       <span className="text-zinc-500 text-sm">Instantly jump out of the current block into the normal editor below it.</span>
+                     </li>
+                     <li className="flex gap-4">
+                       <kbd className="px-2 py-1 bg-zinc-800 rounded font-mono text-white text-xs border border-zinc-700 h-fit whitespace-nowrap">Shift+Enter</kbd>
+                       <span className="text-zinc-500 text-sm">Force split the block and exit below without breaking your flow.</span>
+                     </li>
+                  </ul>
+               </div>
+            </div>
+          </section>
+
+          {/* 04. Canvas */}
           <section id="canvas" className="mb-32 scroll-mt-32">
              <div className="flex items-center gap-3 text-accent font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
               <Network size={14} /> <span>03 // Spatial_UI</span>
@@ -277,7 +320,7 @@ export default function HowToUse() {
             </div>
           </section>
 
-          {/* 04. Vault */}
+          {/* 05. Vault */}
           <section id="vault" className="mb-32 scroll-mt-32">
              <div className="flex items-center gap-3 text-primary font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
               <LinkIcon size={14} /> <span>04 // Resources</span>
@@ -299,7 +342,7 @@ export default function HowToUse() {
             </div>
           </section>
 
-          {/* 05. Timeline */}
+          {/* 06. Timeline */}
           <section id="timeline" className="mb-32 scroll-mt-32">
              <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
               <Clock size={14} /> <span>05 // Auditing</span>
