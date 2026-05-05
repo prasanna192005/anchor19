@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Save, Trash2, Clock, Hash, FileText, Zap, Share2 } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Clock, Hash, FileText, Zap, Share2, Sparkles } from "lucide-react";
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp, addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
@@ -111,6 +111,18 @@ export default function NoteDetailPage() {
     setForm({ ...form, content });
     setIsPreview(false);
     showToast(`${key.charAt(0).toUpperCase() + key.slice(1)} Template Applied`, "info");
+  };
+
+  const handleAiTask = async (task: string) => {
+    if (!user || !form.content && task !== "expand") return;
+    localStorage.setItem("kern_ai_lab_data", JSON.stringify({
+      task,
+      content: form.content || `Title: ${form.projectTag}`,
+      context: form.projectTag,
+      isPending: true,
+      timestamp: Date.now()
+    }));
+    router.push("/ai-lab");
   };
 
   const handleShare = async () => {
@@ -317,6 +329,14 @@ export default function NoteDetailPage() {
           )}
 
           <button
+            onClick={() => handleAiTask("summarise")}
+            className="text-zinc-400 hover:text-primary p-2.5 rounded-xl transition-all"
+            title="AI Summarize"
+          >
+            <Sparkles size={18} />
+          </button>
+
+          <button
             onClick={handleShare}
             className="text-zinc-400 hover:text-primary p-2.5 rounded-xl transition-all"
             title="Share Note"
@@ -383,6 +403,15 @@ export default function NoteDetailPage() {
                 <FileText size={20} className="text-zinc-600 group-hover:text-primary mb-3" />
                 <p className="text-sm font-bold text-white tracking-tight">Bug Report</p>
                 <p className="text-[10px] text-zinc-500 font-medium mt-1">Reproduction steps</p>
+              </button>
+
+              <button 
+                onClick={() => handleAiTask("expand")}
+                className="p-6 rounded-[2rem] bg-primary/5 border border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all text-left group relative overflow-hidden"
+              >
+                <Sparkles size={20} className="text-primary mb-3" />
+                <p className="text-sm font-bold text-primary tracking-tight">AI Smart Fill</p>
+                <p className="text-[10px] text-primary/60 font-medium mt-1">Generate from tag/title</p>
               </button>
             </div>
           </div>

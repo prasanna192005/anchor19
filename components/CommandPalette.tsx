@@ -257,6 +257,18 @@ export default function CommandPalette() {
           }
           break;
         }
+        case "ai_task": {
+          // Redirect immediately with the request parameters
+          localStorage.setItem("kern_ai_lab_data", JSON.stringify({
+            task: act.task,
+            content: act.content,
+            context: act.context,
+            isPending: true,
+            timestamp: Date.now()
+          }));
+          router.push("/ai-lab");
+          break;
+        }
         default: {
           bumpFreq(act.id);
           const nav: Record<string, string> = { Projects: `/projects/${act.id}`, Tasks: "/todos", Knowledge: "/notes" };
@@ -471,6 +483,42 @@ export default function CommandPalette() {
         }
       }
 
+      // ── 3. Flexible AI Intelligence (Summarise, Email, Actions, Expand) ──
+      const aiWords = ["summarise", "email", "actions", "expand", "summarize"];
+      const firstWord = q.split(" ")[0];
+      if (aiWords.includes(firstWord)) {
+        const payload = q.slice(firstWord.length).trim();
+        if (payload) {
+          const mentionMatch = payload.match(/@([\w\s]+)/);
+          if (mentionMatch) {
+            const target = mentionMatch[1].trim();
+            const item = localPool.find(it => it.title.toLowerCase().includes(target.toLowerCase()));
+            if (item) {
+              smart.push({
+                id: `ai-ref-${firstWord}-${item.id}`,
+                type: "ai_task",
+                task: firstWord === "summarize" ? "summarise" : firstWord,
+                content: item.raw.content || item.raw.title || item.title,
+                title: `${firstWord.toUpperCase()} @${item.title}`,
+                icon: Sparkles,
+                category: "AI Intelligence"
+              });
+            }
+          } else {
+            // Direct text task (e.g., "email draft a follow up")
+            smart.push({
+              id: `ai-direct-${firstWord}`,
+              type: "ai_task",
+              task: firstWord === "summarize" ? "summarise" : firstWord,
+              content: payload,
+              title: `${firstWord.toUpperCase()}: ${payload.substring(0, 40)}${payload.length > 40 ? "..." : ""}`,
+              icon: Sparkles,
+              category: "AI Intelligence"
+            });
+          }
+        }
+      }
+
       if (/^https?:\/\//.test(q)) {
         const gType = q.includes("docs.google.com/document") ? "Doc" : q.includes("docs.google.com/spreadsheets") ? "Sheet" : q.includes("docs.google.com/presentation") ? "Slide" : null;
         const gIcon = gType === "Sheet" ? Table : gType === "Slide" ? Presentation : FileText;
@@ -504,9 +552,9 @@ export default function CommandPalette() {
       setResults([...smart, ...navItems.filter(n => n.title.toLowerCase().includes(q)), ...local, ...deep]);
     };
 
-    const t = setTimeout(run, 10);
+    const t = setTimeout(run, 40); // Debounce to 40ms for performance
     return () => clearTimeout(t);
-  }, [queryText, isOpen, user, gdriveToken, confirmingId, localPool, fuzzySearch]);
+  }, [queryText, isOpen, user, gdriveToken, confirmingId, localPool]); // Removed fuzzySearch from deps
 
   // ─── Key Handler ─────────────────────────────────────────────
   const handleKey = (e: React.KeyboardEvent) => {
@@ -614,7 +662,7 @@ export default function CommandPalette() {
                   ? <span className="text-primary"><kbd className="px-1 py-0.5 rounded border border-primary/30 bg-primary/10 font-mono text-primary">Tab</kbd> Complete @mention</span>
                   : <span><kbd className="px-1 py-0.5 rounded border border-zinc-800 bg-zinc-900 font-mono text-zinc-500">@</kbd> Mention</span>
                 }
-                <span className="text-zinc-800">rename @X to @Y · del @X · move @X to Y</span>
+                <span className="text-zinc-800">summarise @X · email [text] · rename @X to @Y · del @X</span>
               </div>
               <div className="flex items-center gap-2">
                 {localPool.length > 0 && <span className="text-[9px] text-zinc-800 font-black uppercase">{localPool.length} synced</span>}
