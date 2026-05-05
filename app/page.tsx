@@ -246,12 +246,7 @@ export default function Dashboard() {
                     {user?.displayName?.split(" ")[0] || "User"}
                   </span>
                 </div>
-                <Link 
-                  href="/why-anchor19" 
-                  className="px-4 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/50 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-primary hover:border-primary/30 transition-all self-center mt-2 lg:mt-0"
-                >
-                  Why_Anchor19?
-                </Link>
+
               </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mt-2 flex items-center gap-2 font-mono">
                 <span className="w-2 h-2 rounded-full bg-primary shadow-glow" />

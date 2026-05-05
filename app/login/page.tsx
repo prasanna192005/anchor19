@@ -66,6 +66,12 @@ export default function LoginPage() {
           >
             WHY ANCHOR19?
           </Link>
+          <Link 
+            href="/how-to-use" 
+            className="text-outline hover:text-primary font-bold tracking-widest transition-all"
+          >
+            HOW TO USE
+          </Link>
         </div>
       </nav>
 
@@ -101,16 +107,30 @@ export default function LoginPage() {
               </motion.div>
             </AnimatePresence>
             
-            <div className="mt-12 flex gap-4">
-              {slides.map((_, i) => (
+            <div className="mt-12 flex flex-wrap gap-12">
+              {slides.map((slide, i) => (
                 <button
                   key={i}
                   onClick={() => setCurrentSlide(i)}
-                  className={cn(
-                    "h-1 transition-all duration-500",
-                    i === currentSlide ? "w-16 bg-primary" : "w-12 bg-white/10 hover:bg-white/20"
-                  )}
-                />
+                  className="flex flex-col gap-4 group text-left relative"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "w-1 h-1 rounded-full transition-all duration-300",
+                      i === currentSlide ? "bg-primary scale-100" : "bg-zinc-800 scale-0 group-hover:scale-100 group-hover:bg-zinc-600"
+                    )} />
+                    <span className={cn(
+                      "text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300",
+                      i === currentSlide ? "text-primary translate-x-0" : "text-zinc-600 group-hover:text-zinc-400 group-hover:translate-x-1"
+                    )}>
+                      {slide.label}
+                    </span>
+                  </div>
+                  <div className={cn(
+                    "h-[2px] transition-all duration-500",
+                    i === currentSlide ? "w-full bg-primary" : "w-4 bg-white/5 group-hover:w-8 group-hover:bg-white/10"
+                  )} />
+                </button>
               ))}
             </div>
           </div>
@@ -141,18 +161,11 @@ export default function LoginPage() {
                   <span>Sign in with Google</span>
                   <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform opacity-50" />
                 </button>
-                <Link 
-                  href="/why-anchor19" 
-                  className="w-full border border-white/10 bg-white/5 py-4 px-8 font-sans font-black uppercase tracking-widest text-[10px] text-zinc-500 hover:bg-white/10 hover:text-white transition-all text-center rounded-sm"
-                >
-                  Why Anchor19?
-                </Link>
-                <Link 
-                  href="/how-to-use" 
-                  className="w-full border border-white/10 bg-transparent py-4 px-8 font-sans font-black uppercase tracking-widest text-[10px] text-zinc-600 hover:bg-white/5 hover:text-white transition-all text-center rounded-sm"
-                >
-                  How To Use
-                </Link>
+                <div className="mt-4 flex flex-col items-center">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                    Free to use · No credit card
+                  </p>
+                </div>
               </div>
             </motion.div>
           </div>
