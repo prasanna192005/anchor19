@@ -2,36 +2,39 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark";
+type Theme = "prismatic" | "cyber" | "solarized" | "abyss" | "glacier";
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>("prismatic");
 
   useEffect(() => {
-    // Always enforce dark
+    const savedTheme = localStorage.getItem("theme") as Theme;
+    if (savedTheme && ["prismatic", "cyber", "solarized", "abyss", "glacier"].includes(savedTheme)) {
+      setThemeState(savedTheme);
+      document.documentElement.setAttribute("data-theme", savedTheme);
+    } else {
+      document.documentElement.setAttribute("data-theme", "prismatic");
+      localStorage.setItem("theme", "prismatic");
+    }
+    // ensure dark mode is always on for tailwind
     document.documentElement.classList.add("dark");
-    localStorage.setItem("theme", "dark");
   }, []);
 
   const setTheme = (newTheme: Theme) => {
-    // Ignore light requests
-    setThemeState("dark");
-  };
-
-  const toggleTheme = () => {
-    // No-op
+    setThemeState(newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+    localStorage.setItem("theme", newTheme);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

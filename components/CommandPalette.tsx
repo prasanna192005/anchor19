@@ -15,6 +15,7 @@ import {
 import Fuse from "fuse.js";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/context/ToastContext";
 import { useUndoStack } from "@/hooks/useUndoStack";
@@ -49,6 +50,7 @@ const detectContext = (q: string): string[] => {
   if (/^(move|rename)/.test(lower)) return ["Tasks", "Projects", "Drive", "Knowledge", "Vault"];
   if (/^(note)/.test(lower)) return ["Knowledge"];
   if (/^drive/.test(lower)) return ["Drive"];
+  if (/^(theme)/.test(lower)) return ["System"];
   return [];
 };
 
@@ -63,6 +65,7 @@ export default function CommandPalette() {
   const [tabHint, setTabHint] = useState<string | null>(null); // ghost text
   
   const { user, gdriveToken, signInWithGoogleDrive, clearDriveToken } = useAuth();
+  const { setTheme } = useTheme();
   const { showToast } = useToast();
   const undoStack = useUndoStack();
   const router = useRouter();
@@ -159,6 +162,9 @@ export default function CommandPalette() {
         case "todo":
           await addDoc(collection(db, `users/${user.uid}/todos`), { title: act.payload, status: "Todo", priority: "Medium", createdAt: serverTimestamp() });
           showToast(`Task created: ${act.payload}`, "success"); break;
+        case "theme":
+          setTheme(act.themeName);
+          showToast(`Theme changed to ${act.themeName}`, "success"); break;
         case "link":
           await addDoc(collection(db, `users/${user.uid}/links`), { title: act.payload, url: act.payload.startsWith("http") ? act.payload : `https://${act.payload}`, category: "Inbox", createdAt: serverTimestamp() });
           showToast("Saved to Vault", "success"); break;
@@ -351,7 +357,9 @@ export default function CommandPalette() {
 
       // ── 1.5 Command Autocomplete (Ghost text) ────────────────
       if (!activeMentionSuggestion) {
-        const commands = ["todo ", "task ", "note ", "rename @", "move @", "link @", "del @", "delete @", "frame: "];
+        const commands = [
+          "todo ", "task ", "note ", "rename @", "move @", "link @", "del @", "delete @", "frame: "
+        ];
         const cmdMatch = commands.find(cmd => cmd.startsWith(q) && q.length > 0 && q !== cmd);
         if (cmdMatch) {
           setTabHint(cmdMatch.slice(q.length));
@@ -442,6 +450,15 @@ export default function CommandPalette() {
         smart.push({
           id: "c-note", title: `New Note: ${content}`, icon: StickyNote, category: "Action",
           _internal: async () => { setIsOpen(false); setQueryText(""); await addDoc(collection(db, `users/${user.uid}/notes`), { content, createdAt: serverTimestamp() }); showToast("Note saved", "success"); }
+        });
+      }
+
+      if (/^theme/i.test(q)) {
+        const queryTheme = q.replace(/^theme\s*/i, "").trim();
+        const themes = ["prismatic", "cyber", "solarized", "abyss", "glacier"];
+        const matchingThemes = queryTheme ? themes.filter(t => t.startsWith(queryTheme)) : themes;
+        matchingThemes.forEach(t => {
+          smart.push({ id: `t-${t}`, type: "theme", themeName: t, title: `Switch Theme to ${t}`, icon: Sparkles, category: "System" });
         });
       }
 

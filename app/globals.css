@@ -1,41 +1,90 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #AED500;
-  --color-primary-foreground: #171E00;
-  --color-secondary: #C6C6C7;
-  --color-secondary-foreground: #1A1C1C;
-  --color-accent: #FFABEE;
-  --color-background: #131313;
-  --color-foreground: #E5E2E1;
-  --color-outline: #919191;
-  --color-outline-variant: #474747;
+  --color-primary: var(--theme-primary);
+  --color-primary-foreground: var(--theme-primary-foreground);
+  --color-secondary: var(--theme-secondary);
+  --color-secondary-foreground: var(--theme-secondary-foreground);
+  --color-accent: var(--theme-accent);
+  --color-background: var(--theme-background);
+  --color-foreground: var(--theme-foreground);
+  --color-outline: var(--theme-outline);
+  --color-outline-variant: var(--theme-outline-variant);
   
   --font-sans: var(--font-space-grotesk), "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
-:root {
+/* Base Prismatic Theme (Default) */
+:root, [data-theme="prismatic"] {
+  --theme-primary: #AED500;
+  --theme-primary-foreground: #171E00;
+  --theme-secondary: #C6C6C7;
+  --theme-secondary-foreground: #1A1C1C;
+  --theme-accent: #FFABEE;
+  --theme-background: #131313;
+  --theme-foreground: #E5E2E1;
+  --theme-outline: #919191;
+  --theme-outline-variant: #474747;
+  
   --background: 13 13% 7%;
   --foreground: 240 1% 90%;
   --card: 13 13% 7%;
   --card-foreground: 240 1% 90%;
-  --popover: 13 13% 7%;
-  --popover-foreground: 240 1% 90%;
   --primary: 71 100% 41.8%;
   --primary-foreground: 180 8.7% 10.4%;
-  --secondary: 240 1% 77.8%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --accent: 312 100% 84%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 71 100% 41.8%;
-  --radius: 1rem;
+}
+
+/* Cyber Theme */
+[data-theme="cyber"] {
+  --theme-primary: #FF2A2A;
+  --theme-primary-foreground: #FFFFFF;
+  --theme-secondary: #A0A0A0;
+  --theme-secondary-foreground: #000000;
+  --theme-accent: #00E5FF;
+  --theme-background: #0A0A0A;
+  --theme-foreground: #F5F5F5;
+  --theme-outline: #666666;
+  --theme-outline-variant: #333333;
+}
+
+/* Solarized Theme */
+[data-theme="solarized"] {
+  --theme-primary: #FFB000;
+  --theme-primary-foreground: #1A1816;
+  --theme-secondary: #D9D2C5;
+  --theme-secondary-foreground: #1A1816;
+  --theme-accent: #00C9B1;
+  --theme-background: #1A1816;
+  --theme-foreground: #FDF6E3;
+  --theme-outline: #839496;
+  --theme-outline-variant: #586E75;
+}
+
+/* Abyss Theme */
+[data-theme="abyss"] {
+  --theme-primary: #00F2FE;
+  --theme-primary-foreground: #0B1021;
+  --theme-secondary: #A3B8CC;
+  --theme-secondary-foreground: #0B1021;
+  --theme-accent: #9D4EDD;
+  --theme-background: #0B1021;
+  --theme-foreground: #E0F2FE;
+  --theme-outline: #475569;
+  --theme-outline-variant: #1E293B;
+}
+
+/* Glacier Theme */
+[data-theme="glacier"] {
+  --theme-primary: #4DABF7;
+  --theme-primary-foreground: #1C2127;
+  --theme-secondary: #C1C9D2;
+  --theme-secondary-foreground: #1C2127;
+  --theme-accent: #69DB7C;
+  --theme-background: #1C2127;
+  --theme-foreground: #F8F9FA;
+  --theme-outline: #868E96;
+  --theme-outline-variant: #495057;
 }
 
 @layer base {
@@ -45,8 +94,8 @@
 }
 
 body {
-  background-color: #0d0d0d;
-  color: #E5E2E1 !important;
+  background-color: var(--theme-background) !important;
+  color: var(--theme-foreground) !important;
   font-family: var(--font-space-grotesk), "Space Grotesk", sans-serif !important;
   letter-spacing: -0.02em;
   -webkit-font-smoothing: antialiased;
@@ -128,6 +177,7 @@ body {
 }
 
 * {
+  cursor: auto;
   transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 250ms;
