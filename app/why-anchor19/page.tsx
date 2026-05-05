@@ -14,9 +14,9 @@ import {
   Terminal as TerminalIcon,
   Activity,
   ChevronRight,
-  Plus,
   Box,
-  Fingerprint
+  Fingerprint,
+  Sparkles
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -159,15 +159,15 @@ export default function WhyAnchor19() {
                 </p>
              </div>
 
-             <div className="p-12 rounded-[3rem] bg-zinc-900/20 border border-zinc-800/40 backdrop-blur-3xl space-y-8 relative overflow-hidden group border-primary/20 bg-primary/5">
+              <div className="p-12 rounded-[3rem] bg-zinc-900/20 border border-zinc-800/40 backdrop-blur-3xl space-y-8 relative overflow-hidden group border-primary/20 bg-primary/5">
                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-100 transition-opacity">
-                   <TerminalIcon size={80} className="text-primary" />
+                   <Sparkles size={80} className="text-primary" />
                 </div>
-                <h3 className="text-4xl font-black text-white uppercase tracking-tighter">Terminal Philosophy</h3>
+                <h3 className="text-4xl font-black text-white uppercase tracking-tighter">AI Intelligence Layer</h3>
                 <p className="text-lg leading-relaxed">
-                  We returned to the terminal aesthetic because it works. It is high-contrast, low-latency, and text-driven. It forces clarity. It commands focus.
+                  We integrated AI not as a chatbot, but as a utility. From summarizing complex meeting notes to drafting professional emails directly from your project context, Anchor19 uses a high-speed intelligence engine to eliminate the grunt work of formatting and synthesis.
                 </p>
-             </div>
+              </div>
           </div>
         </section>
 
@@ -230,12 +230,12 @@ export default function WhyAnchor19() {
 
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[
-                { title: "Universal Search", icon: Search, desc: "Press Ctrl+K to find notes, links, or files across all integrated systems in real-time." },
-                { title: "Deep Integration", icon: Layers, desc: "Native support for Google Drive, Figma, and GitHub. No more searching across 5 dashboards." },
+                { title: "Universal Search", icon: Search, desc: "Press CMD+K to find notes, links, or files across all integrated systems in real-time." },
+                { title: "AI Smart-Templates", icon: Sparkles, desc: "Initialize projects with AI-generated structures. Summarize transcripts or draft emails via simple commands." },
                 { title: "Keyboard Flow", icon: Cpu, desc: "Designed for power users. Execute every action via keyboard shortcuts with zero mouse reliance." },
                 { title: "Project Vaults", icon: Shield, desc: "Your data is yours. Encrypted local-first architecture for the security of your mental models." },
                 { title: "Quick Capture", icon: Zap, desc: "Flash-save thoughts and links directly into specific projects without breaking your flow." },
-                { title: "Focus Mode", icon: TerminalIcon, desc: "A distraction-free terminal aesthetic that hides everything but the task at hand." }
+                { title: "AI Lab", icon: TerminalIcon, desc: "A dedicated workspace to preview and refine AI outputs before committing them to your knowledge base." }
               ].map((feat, i) => (
                 <div key={i} className="p-10 rounded-[2rem] bg-zinc-950 border border-zinc-900 hover:border-zinc-700 transition-all flex flex-col gap-6 group">
                    <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-zinc-600 group-hover:text-primary transition-colors">

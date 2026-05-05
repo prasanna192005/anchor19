@@ -7,7 +7,7 @@ import {
   ArrowLeft, Command as CommandIcon, Search, Zap, 
   Terminal as TerminalIcon, CheckSquare, StickyNote, 
   Hash, Keyboard, Link as LinkIcon, Plus, BookOpen,
-  MousePointer2, Network, Clock, Edit3, Code, MessageSquare
+  MousePointer2, Network, Clock, Edit3, Code, MessageSquare, Sparkles
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ const sections = [
   { id: "canvas", title: "04. Infinite Canvas", icon: Network },
   { id: "vault", title: "05. Resource Vault", icon: LinkIcon },
   { id: "timeline", title: "06. Activity Trace", icon: Clock },
+  { id: "ai", title: "07. AI Intelligence & The Lab", icon: Sparkles },
 ];
 
 export default function HowToUse() {
@@ -193,6 +194,24 @@ export default function HowToUse() {
                   highlight
                 />
                 <CommandRow 
+                  cmd="summarise @[item]" 
+                  desc="Generates a high-impact summary of a note and opens the AI Lab." 
+                  example="summarise @Meeting_Notes"
+                  highlight
+                />
+                <CommandRow 
+                  cmd="email [instruction]" 
+                  desc="Drafts a professional email based on your prompt or an @mention." 
+                  example="email draft a follow up to the marketing team"
+                  highlight
+                />
+                <CommandRow 
+                  cmd="actions @[item]" 
+                  desc="Extracts a markdown checklist of tasks from any note." 
+                  example="actions @Project_Brief"
+                  highlight
+                />
+                <CommandRow 
                   cmd="del @[item]" 
                   desc="Rapid deletion of an item." 
                   example="del @Old_Invoice"
@@ -345,12 +364,47 @@ export default function HowToUse() {
           {/* 06. Timeline */}
           <section id="timeline" className="mb-32 scroll-mt-32">
              <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
-              <Clock size={14} /> <span>05 // Auditing</span>
+              <Clock size={14} /> <span>06 // Auditing</span>
             </div>
             <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white uppercase mb-8">Activity Trace.</h2>
             <p className="text-lg text-zinc-400 leading-relaxed mb-10">
               The <strong>History</strong> page provides an immutable, chronological trace of your interactions. Every time you open a note, click a link, or modify a task, the engine silently logs it. Use this to retrace your steps or remember what you were working on yesterday.
             </p>
+          </section>
+
+          {/* 07. AI */}
+          <section id="ai" className="mb-32 scroll-mt-32">
+             <div className="flex items-center gap-3 text-primary font-mono text-[10px] font-black uppercase tracking-[0.5em] mb-6">
+              <Sparkles size={14} /> <span>07 // AI_Intelligence</span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-white uppercase mb-8">The AI Intelligence Lab.</h2>
+            <p className="text-lg text-zinc-400 leading-relaxed mb-10">
+              AI in Anchor19 isn't just a gimmick—it's a high-performance utility designed to handle the synthesis of your data.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+               <div className="p-8 rounded-[2rem] bg-zinc-900/40 border border-zinc-800/50">
+                  <h3 className="text-white font-bold text-xl mb-4">Zero-Latency Redirection</h3>
+                  <p className="text-zinc-500 text-sm leading-relaxed">
+                     When you execute an AI command (like <code className="text-primary bg-primary/10 px-1 rounded">summarise</code>), Anchor19 instantly redirects you to the <strong>AI Lab</strong>. You don't have to wait for the generation to finish—the Lab page handles the "thinking" while you arrive.
+                  </p>
+               </div>
+               <div className="p-8 rounded-[2rem] bg-zinc-900/40 border border-zinc-800/50">
+                  <h3 className="text-white font-bold text-xl mb-4">The Refinement Loop</h3>
+                  <p className="text-zinc-500 text-sm leading-relaxed">
+                     Found a summary or email draft that isn't quite right? Use the <strong>Refinement Bar</strong> at the bottom of the Lab to talk back to the AI. Tell it to "make it shorter," "change to a professional tone," or "add more detail."
+                  </p>
+               </div>
+            </div>
+
+            <div className="p-8 rounded-[2rem] bg-primary/5 border border-primary/20">
+               <h3 className="text-primary font-black text-xl uppercase mb-4 flex items-center gap-2">
+                 <Zap size={20} /> Smart Templates
+               </h3>
+               <p className="text-primary/70 text-sm leading-relaxed mb-6">
+                 In the Note Editor, use the <strong>AI Smart Fill</strong> button to automatically generate a project brief, bug report, or meeting structure based on nothing but your project tag.
+               </p>
+            </div>
           </section>
 
         </main>
