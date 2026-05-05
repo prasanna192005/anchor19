@@ -13,6 +13,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useHistory } from "@/hooks/useHistory";
 import PageSkeleton from "@/components/PageSkeleton";
+import { AnimatePresence ,motion } from "framer-motion";
 
 export default function NoteDetailPage() {
   const { user, loading } = useAuth();
@@ -25,6 +26,7 @@ export default function NoteDetailPage() {
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { logInteraction } = useHistory();
   
   const templates = {
@@ -241,10 +243,12 @@ export default function NoteDetailPage() {
 
   const handleDelete = async () => {
     if (!user || !noteId || noteId === "new") return;
-    if (confirm("Are you sure you want to purge this record?")) {
+    try {
       await deleteDoc(doc(db, `users/${user.uid}/notes`, noteId));
       showToast("Knowledge Purged", "error");
       router.push("/notes");
+    } catch (e) {
+      showToast("Purge Failure", "error");
     }
   };
 
@@ -345,7 +349,7 @@ export default function NoteDetailPage() {
           </button>
 
           <button
-            onClick={handleDelete}
+            onClick={() => setShowDeleteModal(true)}
             className="text-red-500 hover:bg-red-500/10 p-2.5 rounded-xl transition-all"
             title="Delete Note"
           >
@@ -470,6 +474,48 @@ export default function NoteDetailPage() {
           )}
         </div>
       </main>
+      {/* Custom Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteModal(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-10 relative z-10 text-center space-y-6 shadow-2xl"
+            >
+              <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-500">
+                <Trash2 size={24} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-white tracking-tight">Confirm Purge</h3>
+                <p className="text-sm text-zinc-500 font-medium">This record will be permanently erased from the network. Proceed?</p>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button 
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:bg-zinc-800 transition-all"
+                >
+                  Discard
+                </button>
+                <button 
+                  onClick={() => { handleDelete(); setShowDeleteModal(false); }}
+                  className="flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-red-500 text-white shadow-glow shadow-red-500/20 hover:opacity-90 transition-all"
+                >
+                  Terminate
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -9,6 +9,8 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function AiLabPage() {
   const router = useRouter();
@@ -19,6 +21,9 @@ export default function AiLabPage() {
   const [instruction, setInstruction] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [taskName, setTaskName] = useState("AI Output");
+  const [isPreview, setIsPreview] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pendingData, setPendingData] = useState<any>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("kern_ai_lab_data");
@@ -27,6 +32,7 @@ export default function AiLabPage() {
         const data = JSON.parse(stored);
         if (data.isPending) {
           setTaskName(data.task || "AI Task");
+          setPendingData(data);
           runAi(data.task, data.content, data.context);
         } else {
           setContent(data.result || "");
@@ -41,6 +47,15 @@ export default function AiLabPage() {
 
   const runAi = async (task: string, inputContent: string, context: string) => {
     setIsProcessing(true);
+    setError(null);
+    
+    // 15s Timeout Logic
+    const timeoutId = setTimeout(() => {
+      if (isProcessing && !content) {
+        setError("Generation is taking longer than expected. The AI might be under heavy load.");
+      }
+    }, 15000);
+
     try {
       const res = await fetch("/api/ai", {
         method: "POST",
@@ -48,15 +63,18 @@ export default function AiLabPage() {
         body: JSON.stringify({ task, content: inputContent, context }),
       });
       const data = await res.json();
+      clearTimeout(timeoutId);
+
       if (data.result) {
         setContent(data.result);
         setOriginalContent(data.result);
-        // Clear pending flag
         localStorage.setItem("kern_ai_lab_data", JSON.stringify({ task, result: data.result, isPending: false, timestamp: Date.now() }));
       } else {
+        setError(data.error || "AI Task failed");
         showToast(data.error || "AI Task failed", "error");
       }
     } catch (err) {
+      setError("AI Service unreachable. Check your network connection.");
       showToast("AI Service unreachable", "error");
     } finally {
       setIsProcessing(false);
@@ -136,6 +154,26 @@ export default function AiLabPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 mr-2">
+            <button 
+              onClick={() => setIsPreview(false)}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                !isPreview ? "bg-zinc-800 text-white" : "text-zinc-600 hover:text-zinc-400"
+              )}
+            >
+              Edit
+            </button>
+            <button 
+              onClick={() => setIsPreview(true)}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                isPreview ? "bg-primary text-white" : "text-zinc-600 hover:text-zinc-400"
+              )}
+            >
+              Preview
+            </button>
+          </div>
           <button 
             onClick={handleCopy}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all"
@@ -184,13 +222,30 @@ export default function AiLabPage() {
                   <div className="flex flex-col items-center gap-2">
                     <h2 className="text-xl font-bold tracking-tight text-white">Anchor is thinking...</h2>
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-600 animate-pulse">Processing {taskName}</p>
+                    {error && (
+                      <div className="mt-4 flex flex-col items-center gap-4">
+                        <p className="text-sm text-red-400 font-medium max-w-xs text-center">{error}</p>
+                        <button 
+                          onClick={() => pendingData && runAi(pendingData.task, pendingData.content, pendingData.context)}
+                          className="px-6 py-2 rounded-full bg-zinc-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all"
+                        >
+                          Retry Execution
+                        </button>
+                      </div>
+                    )}
                   </div>
+                </div>
+              ) : isPreview ? (
+                <div className="flex-1 overflow-y-auto markdown-content custom-scrollbar pr-4">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {content}
+                  </ReactMarkdown>
                 </div>
               ) : (
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="w-full h-full min-h-[50vh] bg-transparent border-none outline-none text-lg leading-relaxed text-zinc-300 font-medium placeholder:text-zinc-700 resize-none"
+                  className="w-full h-full min-h-[50vh] bg-transparent border-none outline-none text-lg leading-relaxed text-zinc-300 font-medium placeholder:text-zinc-700 resize-none custom-scrollbar"
                   placeholder="AI output will appear here..."
                 />
               )}

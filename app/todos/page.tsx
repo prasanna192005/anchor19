@@ -65,6 +65,8 @@ export default function TodosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [hoveredTodo, setHoveredTodo] = useState<any>(null);
+  const [showMoveModal, setShowMoveModal] = useState<{ isOpen: boolean; todo?: any }>({ isOpen: false });
+  const [newProjectName, setNewProjectName] = useState("");
 
   const [form, setForm] = useState({ title: "", category: "Work", priority: "Medium", dueDate: "" });
 
@@ -116,16 +118,14 @@ export default function TodosPage() {
     }
   };
 
-  const moveToProject = async (todo: any) => {
-    if (!user || !todo) return;
-    const newProject = prompt("Reassign to Project Scopes:", todo.category || "");
-    if (newProject !== null) {
-      try {
-        await updateDoc(doc(db, `users/${user.uid}/todos`, todo.id), { category: newProject });
-        showToast("Project Scope Updated", "success");
-      } catch (e) {
-        showToast("Move Failure", "error");
-      }
+  const handleMoveTodo = async (todo: any, newProject: string) => {
+    if (!user || !todo || !newProject) return;
+    try {
+      await updateDoc(doc(db, `users/${user.uid}/todos`, todo.id), { category: newProject });
+      showToast("Project Scope Updated", "success");
+      setShowMoveModal({ isOpen: false });
+    } catch (e) {
+      showToast("Move Failure", "error");
     }
   };
 
@@ -142,7 +142,7 @@ export default function TodosPage() {
       },
       { label: "Rename Objective", icon: <Edit3 size={14} />, onClick: () => renameTodo(todo) },
       { label: "Duplicate", icon: <Copy size={14} />, onClick: () => duplicateTodo(todo) },
-      { label: "Move to Project", icon: <Move size={14} />, onClick: () => moveToProject(todo) },
+      { label: "Move to Project", icon: <Move size={14} />, onClick: () => setShowMoveModal({ isOpen: true, todo }) },
       { label: "Create Note", icon: <FileText size={14} />, onClick: () => createNoteFromTask(todo) },
       { label: todo.starred ? "Unstar Objective" : "Star Objective", icon: <Star size={14} className={todo.starred ? "fill-current" : ""} />, onClick: () => toggleStar(todo) },
       { label: "Share Objective", icon: <Share2 size={14} />, onClick: () => handleShare(todo) },
@@ -476,6 +476,77 @@ export default function TodosPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showMoveModal.isOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMoveModal({ isOpen: false })}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-10 relative z-10 space-y-8 shadow-2xl"
+            >
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bold text-white tracking-tight">Reassignment Matrix</h3>
+                <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Target: {showMoveModal.todo?.title}</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 font-mono">_existing_scopes</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Array.from(new Set(todos.map(t => t.category).filter(Boolean))).map((cat: any) => (
+                      <button 
+                        key={cat}
+                        onClick={() => handleMoveTodo(showMoveModal.todo, cat)}
+                        className="px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[10px] font-bold text-zinc-400 hover:text-primary hover:border-primary/30 transition-all text-left truncate"
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="w-full h-px bg-zinc-800/50" />
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 font-mono">_new_scope</label>
+                  <div className="relative">
+                    <input 
+                      type="text"
+                      autoFocus
+                      placeholder="Enter Scope Name..."
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleMoveTodo(showMoveModal.todo, newProjectName)}
+                      className="w-full bg-zinc-950/50 border border-zinc-800 rounded-2xl px-5 py-4 outline-none focus:border-primary/50 transition-all font-medium text-sm text-white placeholder:text-zinc-800"
+                    />
+                    <button 
+                      onClick={() => handleMoveTodo(showMoveModal.todo, newProjectName)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center hover:scale-105 transition-all shadow-glow shadow-primary/20"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setShowMoveModal({ isOpen: false })}
+                className="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:bg-zinc-800 transition-all"
+              >
+                Cancel_Operation
+              </button>
             </motion.div>
           </div>
         )}
