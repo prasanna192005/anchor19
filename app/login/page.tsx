@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 export default function LoginPage() {
@@ -14,9 +14,9 @@ export default function LoginPage() {
 
   const slides = [
     {
-      label: "Identity Gate",
+      label: "Welcome",
       title: <>DEEP<br/>SYSTEM<br/><span className="text-outline-variant opacity-40">ACCESS</span></>,
-      description: "Authenticate to enter your personal command center. Every link, task, file, and thought — unified in one keystroke."
+      description: "Sign in to enter your personal command center. Every link, task, file, and thought — unified in one keystroke."
     },
     {
       label: "The Problem",
@@ -50,12 +50,23 @@ export default function LoginPage() {
       {/* TopNavBar */}
       <nav className="flex justify-between items-center w-full px-12 py-8 z-50 bg-transparent font-sans tracking-tighter uppercase text-sm fixed top-0">
         <div className="text-2xl font-bold tracking-[-0.05em] text-foreground">ANCHOR19</div>
-        <Link 
-          href="/why-anchor19" 
-          className="text-outline hover:text-primary font-bold tracking-widest transition-all"
-        >
-          WHY ANCHOR19?
-        </Link>
+        <div className="flex items-center gap-12">
+          <a 
+            href="https://github.com/prasanna192005/anchor19" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-outline hover:text-primary font-bold tracking-widest transition-all flex items-center gap-2"
+          >
+            <Github size={14} />
+            GITHUB
+          </a>
+          <Link 
+            href="/why-anchor19" 
+            className="text-outline hover:text-primary font-bold tracking-widest transition-all"
+          >
+            WHY ANCHOR19?
+          </Link>
+        </div>
       </nav>
 
       {/* Main Content: Login Shell */}
@@ -113,42 +124,37 @@ export default function LoginPage() {
               className="glass-panel p-12 lg:p-16 border-t border-l border-white/5 shadow-2xl"
             >
               <div className="mb-12">
-                <h2 className="font-sans text-4xl font-bold mb-4 tracking-tight">Identity Sync</h2>
-                <p className="text-outline text-lg">Initialize your secure workspace connection.</p>
+                <h2 className="font-sans text-4xl font-bold mb-4 tracking-tight">Welcome Back</h2>
+                <p className="text-outline text-lg">Sign in to access your workspace.</p>
               </div>
 
               <div className="pt-4 flex flex-col gap-4">
                 <button 
                   onClick={signInWithGoogle}
-                  className="w-full bg-foreground text-background py-6 px-8 font-sans font-black uppercase tracking-widest text-sm hover:bg-primary hover:text-primary-foreground transition-all duration-500 transform hover:scale-[1.02] flex justify-between items-center group"
+                  className="w-full bg-foreground text-background py-6 px-8 font-sans font-bold tracking-tight text-lg hover:bg-primary hover:text-primary-foreground transition-all duration-500 transform hover:scale-[1.02] flex items-center justify-center gap-4 group rounded-xl shadow-xl shadow-primary/5"
                 >
-                  <div className="flex items-center gap-4">
-                    <img 
-                      alt="Google" 
-                      className="w-5 h-5 flex-shrink-0" 
-                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                    />
-                    <span>AUTHENTICATE_SYSTEM</span>
-                  </div>
-                  <ArrowRight className="group-hover:translate-x-2 transition-transform" />
+                  <img 
+                    alt="Google" 
+                    className="w-6 h-6 flex-shrink-0" 
+                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                  />
+                  <span>Sign in with Google</span>
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform opacity-50" />
                 </button>
                 <Link 
                   href="/why-anchor19" 
                   className="w-full border border-white/10 bg-white/5 py-4 px-8 font-sans font-black uppercase tracking-widest text-[10px] text-zinc-500 hover:bg-white/10 hover:text-white transition-all text-center rounded-sm"
                 >
-                  Learn_The_Philosophy
+                  Why Anchor19?
                 </Link>
                 <Link 
                   href="/how-to-use" 
                   className="w-full border border-white/10 bg-transparent py-4 px-8 font-sans font-black uppercase tracking-widest text-[10px] text-zinc-600 hover:bg-white/5 hover:text-white transition-all text-center rounded-sm"
                 >
-                  Read_The_Manual
+                  How To Use
                 </Link>
               </div>
             </motion.div>
-            <p className="mt-8 text-center text-outline-variant text-[10px] uppercase tracking-widest">
-              New to the monolith? <a className="text-outline hover:text-primary transition-colors" href="#">CREATE ACCOUNT</a>
-            </p>
           </div>
         </div>
 

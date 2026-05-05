@@ -17,7 +17,8 @@ import {
   Globe,
   FileText,
   MousePointer2,
-  Users
+  Users,
+  Github
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,15 @@ export default function LandingPage() {
       <nav className="flex justify-between items-center w-full px-12 py-8 z-50 bg-transparent font-sans tracking-tighter uppercase text-sm fixed top-0">
         <div className="text-2xl font-bold tracking-[-0.05em] text-foreground">ANCHOR19</div>
         <div className="hidden md:flex items-center gap-12 text-outline">
+          <a 
+            href="https://github.com/prasanna192005/anchor19" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="font-medium hover:text-foreground transition-all duration-300 flex items-center gap-2"
+          >
+            <Github size={14} />
+            GITHUB
+          </a>
           <Link className="font-medium hover:text-foreground transition-all duration-300" href="/why-anchor19">WHY ANCHOR19</Link>
           <a className="font-medium hover:text-foreground transition-all duration-300" href="#features">FEATURES</a>
           <a className="font-medium hover:text-foreground transition-all duration-300" href="#how-it-works">HOW IT WORKS</a>
@@ -133,6 +143,7 @@ export default function LandingPage() {
                 WHY ANCHOR19?
               </Link>
             </motion.div>
+
           </div>
         </div>
       </section>
@@ -312,6 +323,10 @@ export default function LandingPage() {
              <span>© 2024 ANCHOR19 MONOLITH</span>
            </div>
            <div className="flex gap-12">
+             <a href="https://github.com/prasanna192005/anchor19" target="_blank" rel="noopener noreferrer" className="hover:text-foreground flex items-center gap-2">
+               <Github size={16} />
+               GITHUB
+             </a>
              <a href="#" className="hover:text-foreground">PRIVACY</a>
              <a href="#" className="hover:text-foreground">TERMS</a>
              <a href="#" className="hover:text-foreground">SECURITY</a>
