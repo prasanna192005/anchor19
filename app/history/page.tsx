@@ -29,6 +29,7 @@ import {
 import { db } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/context/ToastContext";
+import PageSkeleton from "@/components/PageSkeleton";
 
 export default function HistoryPage() {
   const { user, loading } = useAuth();
@@ -84,7 +85,7 @@ export default function HistoryPage() {
 
   const categories = ["All", "Vault", "Drive", "Deep Search findings"];
 
-  if (loading || !user) return null;
+  if (loading || !user) return <PageSkeleton variant="list" />;
 
   return (
     <div className="min-h-screen bg-background p-8 lg:p-16 flex flex-col gap-10">

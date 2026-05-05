@@ -19,7 +19,9 @@ import {
   Edit3,
   Copy,
   Move,
-  FileText
+  FileText,
+  Star,
+  Share2
 } from "lucide-react";
 import { 
   collection, 
@@ -38,6 +40,7 @@ import { useToast } from "@/context/ToastContext";
 import { useLinking } from "@/context/LinkingContext";
 import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 import { useContextMenu } from "@/context/ContextMenuContext";
+import PageSkeleton from "@/components/PageSkeleton";
 
 const priorityColors = {
   High: "bg-red-500/10 text-red-500 border-red-500/20",
@@ -141,6 +144,8 @@ export default function TodosPage() {
       { label: "Duplicate", icon: <Copy size={14} />, onClick: () => duplicateTodo(todo) },
       { label: "Move to Project", icon: <Move size={14} />, onClick: () => moveToProject(todo) },
       { label: "Create Note", icon: <FileText size={14} />, onClick: () => createNoteFromTask(todo) },
+      { label: todo.starred ? "Unstar Objective" : "Star Objective", icon: <Star size={14} className={todo.starred ? "fill-current" : ""} />, onClick: () => toggleStar(todo) },
+      { label: "Share Objective", icon: <Share2 size={14} />, onClick: () => handleShare(todo) },
       { label: "Delete", icon: <Trash2 size={14} />, onClick: () => deleteTodoFunc(todo.id), variant: "destructive" },
     ], todo.title);
   };
@@ -196,11 +201,34 @@ export default function TodosPage() {
     showToast(modalState.mode === "add" ? "Objective Initialized" : "Identity Updated", "success");
   };
 
+  const handleShare = async (todo: any) => {
+    if (!user) return;
+    try {
+      const shareToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      await updateDoc(doc(db, `users/${user.uid}/todos`, todo.id), {
+        shareToken,
+        isPublic: true
+      });
+      const shareUrl = `${window.location.origin}/shared/${shareToken}?type=todo&owner=${user.uid}&id=${todo.id}`;
+      navigator.clipboard.writeText(shareUrl);
+      showToast("Public Link Copied", "success");
+    } catch (e) {
+      showToast("Sharing Failed", "error");
+    }
+  };
+
   const toggleStatus = async (todo: any) => {
     if (!user) return;
     const nextStatus = todo.status === "Done" ? "Todo" : "Done";
     await updateDoc(doc(db, `users/${user.uid}/todos`, todo.id), { status: nextStatus });
     showToast(nextStatus === "Done" ? "Task Commited" : "Task Re-initialized", "info");
+  };
+
+  const toggleStar = async (todo: any) => {
+    if (!user) return;
+    const newStarred = !todo.starred;
+    await updateDoc(doc(db, `users/${user.uid}/todos`, todo.id), { starred: newStarred });
+    showToast(newStarred ? "Objective Starred" : "Objective Unstarred", "info");
   };
 
   const handleInlineSave = async (id: string) => {
@@ -224,7 +252,7 @@ export default function TodosPage() {
 
   const filteredTodos = todos.filter(t => (t.title || "").toLowerCase().includes(searchQuery.toLowerCase()));
 
-  if (loading || !user) return null;
+  if (loading || !user) return <PageSkeleton variant="list" />;
 
   return (
     <div className="min-h-screen bg-background p-8 lg:p-16 flex flex-col gap-10">
@@ -316,6 +344,7 @@ export default function TodosPage() {
                       onEditChange={setEditValue}
                       onSave={() => handleInlineSave(todo.id)}
                       onCancel={() => setEditingId(null)}
+                      onToggleStar={() => toggleStar(todo)}
                     />
                   ))}
                 </AnimatePresence>
@@ -357,6 +386,7 @@ export default function TodosPage() {
                     onEditChange={setEditValue}
                     onSave={() => handleInlineSave(todo.id)}
                     onCancel={() => setEditingId(null)}
+                    onToggleStar={() => toggleStar(todo)}
                   />
               ))}
             </AnimatePresence>
@@ -456,10 +486,10 @@ export default function TodosPage() {
 
 function TodoCard({ 
   todo, onToggle, onDelete, onEdit, onStatusChange, onMouseEnter, onMouseLeave, onContextMenu,
-  isEditing, editValue, onStartEdit, onEditChange, onSave, onCancel 
+  isEditing, editValue, onStartEdit, onEditChange, onSave, onCancel, onToggleStar 
 }: { 
   todo: any, onToggle: () => void, onDelete: () => void, onEdit: () => void, onStatusChange: (status: string) => void, onMouseEnter?: () => void, onMouseLeave?: () => void, onContextMenu: (e: React.MouseEvent) => void,
-  isEditing: boolean, editValue: string, onStartEdit: () => void, onEditChange: (val: string) => void, onSave: () => void, onCancel: () => void
+  isEditing: boolean, editValue: string, onStartEdit: () => void, onEditChange: (val: string) => void, onSave: () => void, onCancel: () => void, onToggleStar: () => void
 }) {
   const isDone = todo.status === "Done";
   
@@ -537,6 +567,15 @@ function TodoCard({
         </div>
         <div className="flex items-center gap-1">
           <button 
+            onClick={onToggleStar}
+            className={cn(
+              "p-2 rounded-lg transition-all shrink-0",
+              todo.starred ? "text-amber-400 opacity-100" : "opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-amber-400"
+            )}
+          >
+            <Star size={14} className={todo.starred ? "fill-current" : ""} />
+          </button>
+          <button 
             onClick={onEdit}
             className="opacity-0 group-hover:opacity-100 p-2 rounded-lg hover:bg-zinc-800 text-zinc-600 hover:text-white transition-all shrink-0"
           >
@@ -556,10 +595,10 @@ function TodoCard({
 
 function TodoRow({ 
   todo, onToggle, onDelete, onEdit, onMouseEnter, onMouseLeave, onContextMenu,
-  isEditing, editValue, onStartEdit, onEditChange, onSave, onCancel
+  isEditing, editValue, onStartEdit, onEditChange, onSave, onCancel, onToggleStar
 }: { 
   todo: any, onToggle: () => void, onDelete: () => void, onEdit: () => void, onMouseEnter?: () => void, onMouseLeave?: () => void, onContextMenu: (e: React.MouseEvent) => void,
-  isEditing: boolean, editValue: string, onStartEdit: () => void, onEditChange: (val: string) => void, onSave: () => void, onCancel: () => void
+  isEditing: boolean, editValue: string, onStartEdit: () => void, onEditChange: (val: string) => void, onSave: () => void, onCancel: () => void, onToggleStar: () => void
 }) {
   const isDone = todo.status === "Done";
   
@@ -624,6 +663,15 @@ function TodoRow({
         </div>
 
         <div className="flex items-center gap-1">
+          <button 
+            onClick={onToggleStar}
+            className={cn(
+              "p-2 rounded-lg transition-all shrink-0",
+              todo.starred ? "text-amber-400 opacity-100" : "opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-amber-400"
+            )}
+          >
+            <Star size={14} className={todo.starred ? "fill-current" : ""} />
+          </button>
           <button 
             onClick={onEdit}
             className="opacity-0 group-hover:opacity-100 p-2 rounded-lg hover:bg-zinc-800 text-zinc-600 hover:text-white transition-all shrink-0"

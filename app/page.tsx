@@ -7,6 +7,7 @@ import { useToast } from "@/context/ToastContext";
 import { useLinking } from "@/context/LinkingContext";
 import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 import { useHistory } from "@/hooks/useHistory";
+import PageSkeleton from "@/components/PageSkeleton";
 import { 
   CheckSquare, 
   Link as LinkIcon, 
@@ -29,7 +30,8 @@ import {
   FolderOpen,
   Clock,
   History,
-  Edit3
+  Edit3,
+  Star
 } from "lucide-react";
 import { 
   collection, 
@@ -79,10 +81,11 @@ export default function Dashboard() {
   const { showMenu } = useContextMenu();
   const [recentTodos, setRecentTodos] = useState<any[]>([]);
   const [todoStats, setTodoStats] = useState({ total: 0, done: 0 });
-  const [pinnedLinks, setPinnedLinks] = useState<any[]>([]);
+  const [starredLinks, setStarredLinks] = useState<any[]>([]);
   const [recentNotes, setRecentNotes] = useState<any[]>([]);
   const [recentDrive, setRecentDrive] = useState<any[]>([]);
   const [recentHistory, setRecentHistory] = useState<any[]>([]);
+  const [starredItems, setStarredItems] = useState<any[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [quickInput, setQuickInput] = useState("");
   const [isCapturing, setIsCapturing] = useState(false);
@@ -117,8 +120,8 @@ export default function Dashboard() {
         });
       });
 
-      const linksQ = query(collection(db, `users/${user.uid}/links`), where("pinned", "==", true), limit(6));
-      const unsubLinks = onSnapshot(linksQ, (s) => setPinnedLinks(s.docs.map(d => ({id: d.id, ...d.data()}))));
+      const linksQ = query(collection(db, `users/${user.uid}/links`), where("starred", "==", true), limit(6));
+      const unsubLinks = onSnapshot(linksQ, (s) => setStarredLinks(s.docs.map(d => ({id: d.id, ...d.data()}))));
 
       const notesQ = query(collection(db, `users/${user.uid}/notes`), orderBy("updatedAt", "desc"), limit(5));
       const unsubNotes = onSnapshot(notesQ, (s) => setRecentNotes(s.docs.map(d => ({id: d.id, ...d.data()}))));
@@ -129,7 +132,23 @@ export default function Dashboard() {
       const historyQ = query(collection(db, `users/${user.uid}/history`), orderBy("timestamp", "desc"), limit(3));
       const unsubHistory = onSnapshot(historyQ, (s) => setRecentHistory(s.docs.map(d => ({id: d.id, ...d.data()}))));
 
-      return () => { unsubTodos(); unsubLinks(); unsubNotes(); unsubDrive(); unsubHistory(); };
+      // Fetch Starred Items from all collections
+      const collections = ["todos", "links", "notes", "drive"];
+      const unsubscribes = collections.map(col => {
+        const q = query(collection(db, `users/${user.uid}/${col}`), where("starred", "==", true));
+        return onSnapshot(q, (s) => {
+          setStarredItems(prev => {
+            const others = prev.filter(i => i.collection !== col);
+            const current = s.docs.map(d => ({ id: d.id, collection: col, ...d.data() }));
+            return [...others, ...current].sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+          });
+        });
+      });
+
+      return () => { 
+        unsubTodos(); unsubLinks(); unsubNotes(); unsubDrive(); unsubHistory(); 
+        unsubscribes.forEach(unsub => unsub());
+      };
     }
   }, [user]);
 
@@ -221,7 +240,7 @@ export default function Dashboard() {
     showToast("Task Commited", "info");
   };
 
-  if (loading || !user) return null;
+  if (loading || !user) return <PageSkeleton variant="dashboard" />;
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
@@ -299,11 +318,11 @@ export default function Dashboard() {
             className="lg:col-span-6 lg:row-span-1 glass-card rounded-3xl p-6 flex flex-col gap-4 border border-zinc-800/80 overflow-hidden"
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Pinned Resources</h2>
-              <span className="text-[10px] font-black tabular-nums text-accent bg-accent/10 px-2 py-0.5 rounded-full">{pinnedLinks.length} items</span>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Starred Resources</h2>
+              <span className="text-[10px] font-black tabular-nums text-accent bg-accent/10 px-2 py-0.5 rounded-full">{starredLinks.length} items</span>
             </div>
             <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
-               {pinnedLinks.slice(0, 6).map((link, i) => (
+               {starredLinks.slice(0, 6).map((link, i) => (
                   <div 
                     key={link.id}
                     onMouseEnter={() => setHoveredItem({ ...link, type: "link" })}

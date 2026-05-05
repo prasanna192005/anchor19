@@ -15,7 +15,9 @@ import {
   Link2,
   Globe,
   Edit2,
-  Edit3
+  Edit3,
+  Star,
+  Share2
 } from "lucide-react";
 import { 
   collection, 
@@ -30,12 +32,15 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
+
 import { useContextMenu } from "@/context/ContextMenuContext";
 import { Copy as CopyIcon } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { useLinking } from "@/context/LinkingContext";
+
 import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 import { useHistory } from "@/hooks/useHistory";
+import PageSkeleton from "@/components/PageSkeleton";
 
 export default function LinksPage() {
   const { user, loading } = useAuth();
@@ -121,7 +126,7 @@ export default function LinksPage() {
       await addDoc(collection(db, `users/${user.uid}/links`), {
         ...form,
         url: formattedUrl,
-        pinned: false,
+        starred: false,
         createdAt: serverTimestamp(),
       });
     } else if (modalState.mode === "edit" && modalState.link) {
@@ -137,17 +142,33 @@ export default function LinksPage() {
     showToast(modalState.mode === "add" ? "Resource Initialized" : "Identity Updated", "success");
   };
 
-  const togglePin = async (link: any) => {
+  const toggleStar = async (link: any) => {
     if (!user) return;
-    const newPinned = !link.pinned;
-    await updateDoc(doc(db, `users/${user.uid}/links`, link.id), { pinned: newPinned });
-    showToast(newPinned ? "Resource Pinned" : "Resource Unpinned", "info");
+    const newStarred = !link.starred;
+    await updateDoc(doc(db, `users/${user.uid}/links`, link.id), { starred: newStarred });
+    showToast(newStarred ? "Resource Starred" : "Resource Unstarred", "info");
   };
 
   const deleteLink = async (id: string) => {
     if (!user) return;
     await deleteDoc(doc(db, `users/${user.uid}/links`, id));
     showToast("Resource Terminated", "error");
+  };
+
+  const handleShare = async (link: any) => {
+    if (!user) return;
+    try {
+      const shareToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      await updateDoc(doc(db, `users/${user.uid}/links`, link.id), {
+        shareToken,
+        isPublic: true
+      });
+      const shareUrl = `${window.location.origin}/shared/${shareToken}?type=link&owner=${user.uid}&id=${link.id}`;
+      navigator.clipboard.writeText(shareUrl);
+      showToast("Public Link Copied", "success");
+    } catch (e) {
+      showToast("Sharing Failed", "error");
+    }
   };
 
   const handleInlineSave = async (id: string) => {
@@ -173,7 +194,7 @@ export default function LinksPage() {
 
   const categories = ["All", ...Array.from(new Set(links.map(l => l.category)))];
 
-  if (loading || !user) return null;
+  if (loading || !user) return <PageSkeleton variant="grid" />;
 
   return (
     <div className="min-h-screen bg-background p-8 lg:p-16 flex flex-col gap-10">
@@ -232,11 +253,9 @@ export default function LinksPage() {
             <LinkCard 
               key={link.id} 
               link={link} 
-              onTogglePin={() => togglePin(link)} 
               onDelete={() => deleteLinkFunc(link.id)} 
               onMouseEnter={() => setHoveredLink(link)}
               onMouseLeave={() => setHoveredLink(null)}
-              onOpen={() => logInteraction({ title: link.title, url: link.url, category: "Vault" })}
               onEdit={() => {
                 setForm({ title: link.title, url: link.url, category: link.category || "General", description: link.description || "", projectId: link.projectId || "" });
                 setModalState({ isOpen: true, mode: "edit", link });
@@ -257,7 +276,8 @@ export default function LinksPage() {
                     setForm({ title: link.title, url: link.url, category: link.category || "General", description: link.description || "", projectId: link.projectId || "" });
                     setModalState({ isOpen: true, mode: "edit", link });
                   } },
-                  { label: link.pinned ? "Unpin Reference" : "Pin Reference", icon: <Pin size={14} />, onClick: () => togglePin(link) },
+                  { label: link.starred ? "Unstar Resource" : "Star Resource", icon: <Star size={14} className={link.starred ? "fill-current" : ""} />, onClick: () => toggleStar(link) },
+                  { label: "Share Resource", icon: <Share2 size={14} />, onClick: () => handleShare(link) },
                   { label: "Delete Resource", icon: <Trash2 size={14} />, variant: "destructive", onClick: () => deleteLinkFunc(link.id) },
                 ], link.title || "Link System");
               }}
@@ -270,6 +290,8 @@ export default function LinksPage() {
               onEditChange={setEditValue}
               onSave={() => handleInlineSave(link.id)}
               onCancel={() => setEditingId(null)}
+              onToggleStar={() => toggleStar(link)}
+              onOpen={() => logInteraction({ title: link.title, url: link.url, category: "Vault", type: "link" })}
             />
           ))}
         </AnimatePresence>
@@ -362,11 +384,11 @@ export default function LinksPage() {
 }
 
 function LinkCard({ 
-  link, onTogglePin, onDelete, onEdit, onContextMenu, onMouseEnter, onMouseLeave, onOpen,
-  isEditing, editValue, onStartEdit, onEditChange, onSave, onCancel
+   link, onDelete, onEdit, onContextMenu, onMouseEnter, onMouseLeave, onOpen,
+   isEditing, editValue, onStartEdit, onEditChange, onSave, onCancel, onToggleStar
 }: { 
-  link: any, onTogglePin: () => void, onDelete: () => void, onEdit: () => void, onContextMenu: (e: React.MouseEvent) => void, onMouseEnter?: () => void, onMouseLeave?: () => void, onOpen: () => void,
-  isEditing: boolean, editValue: string, onStartEdit: () => void, onEditChange: (val: string) => void, onSave: () => void, onCancel: () => void
+   link: any, onDelete: () => void, onEdit: () => void, onContextMenu: (e: React.MouseEvent) => void, onMouseEnter?: () => void, onMouseLeave?: () => void, onOpen: () => void,
+   isEditing: boolean, editValue: string, onStartEdit: () => void, onEditChange: (val: string) => void, onSave: () => void, onCancel: () => void, onToggleStar: () => void
 }) {
   const faviconUrl = `https://www.google.com/s2/favicons?sz=64&domain=${new URL(link.url).hostname}`;
 
@@ -394,15 +416,15 @@ function LinkCard({
             <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 text-[9px] font-bold uppercase tracking-widest border border-zinc-700/50">
               {link.category || 'GENERAL'}
             </span>
-            <button 
-              onClick={onTogglePin}
-              className={cn(
-                "p-1.5 rounded-lg transition-all",
-                link.pinned ? "text-primary bg-primary/10" : "text-zinc-600 hover:text-primary opacity-0 group-hover:opacity-100"
-              )}
-            >
-              <Pin size={14} className={link.pinned ? "fill-current text-primary" : ""} />
-            </button>
+             <button 
+               onClick={onToggleStar}
+               className={cn(
+                 "p-1.5 rounded-lg transition-all",
+                 link.starred ? "text-amber-400 opacity-100" : "text-zinc-600 hover:text-amber-400 opacity-0 group-hover:opacity-100"
+               )}
+             >
+               <Star size={14} className={link.starred ? "fill-current" : ""} />
+             </button>
         </div>
       </div>
 

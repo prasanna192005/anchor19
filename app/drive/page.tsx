@@ -19,7 +19,9 @@ import {
   Database,
   Link as LinkIconAlt,
   Edit2,
-  Edit3
+  Edit3,
+  Star,
+  Share2
 } from "lucide-react";
 import { 
   collection, 
@@ -39,6 +41,7 @@ import { useToast } from "@/context/ToastContext";
 import { useLinking } from "@/context/LinkingContext";
 import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 import { useHistory } from "@/hooks/useHistory";
+import PageSkeleton from "@/components/PageSkeleton";
 
 const typeStyles = {
   Sheet: { color: "#16A34A", icon: Table, bg: "rgba(22, 163, 74, 0.1)" },
@@ -150,6 +153,29 @@ export default function DrivePage() {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
+  const toggleStar = async (item: any) => {
+    if (!user) return;
+    const newStarred = !item.starred;
+    await updateDoc(doc(db, `users/${user.uid}/drive`, item.id), { starred: newStarred });
+    showToast(newStarred ? "Resource Starred" : "Resource Unstarred", "info");
+  };
+
+  const handleShare = async (item: any) => {
+    if (!user) return;
+    try {
+      const shareToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      await updateDoc(doc(db, `users/${user.uid}/drive`, item.id), {
+        shareToken,
+        isPublic: true
+      });
+      const shareUrl = `${window.location.origin}/shared/${shareToken}?type=drive&owner=${user.uid}&id=${item.id}`;
+      navigator.clipboard.writeText(shareUrl);
+      showToast("Public Link Copied", "success");
+    } catch (e) {
+      showToast("Sharing Failed", "error");
+    }
+  };
+
   const handleInlineSave = async (id: string) => {
     if (!user || !editValue.trim()) {
       setEditingId(null);
@@ -177,7 +203,7 @@ export default function DrivePage() {
     return acc;
   }, {});
 
-  if (loading || !user) return null;
+  if (loading || !user) return <PageSkeleton variant="list" />;
 
   return (
     <div className="min-h-screen bg-background p-6 lg:p-12 pt-12 lg:pt-16 flex flex-col gap-8 relative overflow-hidden">
@@ -248,6 +274,8 @@ export default function DrivePage() {
                         showMenu(e.clientX, e.clientY, [
                           { label: "Rename Identity", icon: <Edit3 size={14} />, onClick: () => startRenaming(item) },
                           { label: "Copy Resource URL", icon: <CopyIcon size={14} />, onClick: () => navigator.clipboard.writeText(item.url) },
+                          { label: item.starred ? "Unstar Reference" : "Star Reference", icon: <Star size={14} className={item.starred ? "fill-current" : ""} />, onClick: () => toggleStar(item) },
+                          { label: "Share Resource", icon: <Share2 size={14} />, onClick: () => handleShare(item) },
                           { label: "Edit Metadata", icon: <Edit2 size={14} />, onClick: () => {
                              setForm({ title: item.title, url: item.url, projectTag: item.projectTag || "General", type: item.type || "Doc", notes: item.notes || "", projectId: item.projectId || "" });
                              setModalState({ isOpen: true, mode: "edit", item });
@@ -305,6 +333,16 @@ export default function DrivePage() {
                           </a>
 
                           <button 
+                            onClick={() => toggleStar(item)}
+                            className={cn(
+                              "w-10 h-10 rounded-xl transition-all border flex items-center justify-center",
+                              item.starred ? "text-amber-400 bg-amber-400/10 border-amber-400/20" : "text-zinc-600 hover:text-amber-400 border-zinc-800 bg-zinc-950/30 opacity-0 group-hover:opacity-100"
+                            )}
+                          >
+                             <Star size={16} className={item.starred ? "fill-current" : ""} />
+                          </button>
+
+                          <button 
                             onClick={() => {
                                setForm({ title: item.title, url: item.url, projectTag: item.projectTag || "General", type: item.type || "Doc", notes: item.notes || "", projectId: item.projectId || "" });
                                setModalState({ isOpen: true, mode: "edit", item });
@@ -314,8 +352,16 @@ export default function DrivePage() {
                              Metadata
                           </button>
 
-                          <button 
-                            onClick={() => deleteFileFunc(item.id)}
+                           <button 
+                             onClick={() => handleShare(item)}
+                             className="w-10 h-10 rounded-xl hover:bg-zinc-800 text-zinc-700 hover:text-white opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                             title="Share Publicly"
+                           >
+                              <Share2 size={16} />
+                           </button>
+
+                           <button 
+                             onClick={() => deleteFileFunc(item.id)}
                             className="w-10 h-10 rounded-xl hover:bg-red-500/10 text-zinc-800 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
                           >
                              <Trash2 size={16} />

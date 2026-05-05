@@ -42,6 +42,7 @@ import { useLinking } from "@/context/LinkingContext";
 import { useContextMenu } from "@/context/ContextMenuContext";
 import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 import { cn } from "@/lib/utils";
+import PageSkeleton from "@/components/PageSkeleton";
 
 const typeStyles = {
   Sheet: { color: "#16A34A", icon: Table, bg: "rgba(22, 163, 74, 0.1)" },
@@ -213,7 +214,7 @@ export default function ProjectDetailsPage() {
     }
   }, [user, params.id, router]);
 
-  if (loading || isLoading || !user) return null;
+  if (loading || isLoading || !user) return <PageSkeleton variant="dashboard" />;
 
   return (
     <div className="min-h-screen bg-background p-8 lg:p-12 pt-24 lg:pt-32 relative overflow-hidden">

@@ -17,7 +17,9 @@ import {
   Hash,
   Copy,
   Edit2,
-  Folder
+  Folder,
+  Star,
+  Share2
 } from "lucide-react";
 import {
   collection,
@@ -36,6 +38,7 @@ import { useToast } from "@/context/ToastContext";
 import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 import { useContextMenu } from "@/context/ContextMenuContext";
 import { useLinking } from "@/context/LinkingContext";
+import PageSkeleton from "@/components/PageSkeleton";
 
 
 const stripFormatting = (text: string) => {
@@ -130,6 +133,29 @@ export default function NotesPage() {
     showToast("Knowledge Purged", "error");
   };
 
+  const toggleStar = async (note: any) => {
+    if (!user) return;
+    const newStarred = !note.starred;
+    await updateDoc(doc(db, `users/${user.uid}/notes`, note.id), { starred: newStarred });
+    showToast(newStarred ? "Knowledge Starred" : "Knowledge Unstarred", "info");
+  };
+
+  const handleShare = async (note: any) => {
+    if (!user) return;
+    try {
+      const shareToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      await updateDoc(doc(db, `users/${user.uid}/notes`, note.id), {
+        shareToken,
+        isPublic: true
+      });
+      const shareUrl = `${window.location.origin}/shared/${shareToken}?type=note&owner=${user.uid}&id=${note.id}`;
+      navigator.clipboard.writeText(shareUrl);
+      showToast("Public Link Copied", "success");
+    } catch (e) {
+      showToast("Sharing Failed", "error");
+    }
+  };
+
   const duplicateNote = async (note: any) => {
     if (!user || !note) return;
     try {
@@ -158,6 +184,8 @@ export default function NotesPage() {
       { label: "Move to Project", icon: <Folder size={14} />, onClick: () => {
          setSelectedNoteForMove(note);
       }},
+      { label: note.starred ? "Unstar Thought" : "Star Thought", icon: <Star size={14} className={note.starred ? "fill-current" : ""} />, onClick: () => toggleStar(note) },
+      { label: "Share Thought", icon: <Share2 size={14} />, onClick: () => handleShare(note) },
       { label: "Duplicate Thought", icon: <Copy size={14} />, onClick: () => duplicateNote(note) },
       { label: "Purge Record", icon: <Trash2 size={14} />, onClick: () => deleteNoteFunc(note.id), variant: "destructive" },
     ], note.projectTag || "General Thought");
@@ -168,7 +196,7 @@ export default function NotesPage() {
     note.projectTag?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (loading || !user) return null;
+  if (loading || !user) return <PageSkeleton variant="grid" />;
 
   return (
     <div className="min-h-screen bg-background p-8 lg:p-16 flex flex-col gap-10">
@@ -222,10 +250,22 @@ export default function NotesPage() {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-900">
                   <Hash size={12} className="text-primary" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
                     {note.projectTag || 'General'}
                   </span>
                 </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleStar(note);
+                  }}
+                  className={cn(
+                    "p-2 rounded-xl transition-all",
+                    note.starred ? "text-amber-400 bg-amber-400/10" : "text-zinc-600 hover:text-amber-400 hover:bg-zinc-800"
+                  )}
+                >
+                  <Star size={16} className={note.starred ? "fill-current" : ""} />
+                </button>
               </div>
 
               <div className="flex-1 overflow-hidden relative">

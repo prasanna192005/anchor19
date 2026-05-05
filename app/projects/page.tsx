@@ -35,6 +35,7 @@ import { useContextMenu } from "@/context/ContextMenuContext";
 import { Edit2, ExternalLink } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import Link from "next/link";
+import PageSkeleton from "@/components/PageSkeleton";
 
 export default function ProjectsPage() {
   const { user, loading } = useAuth();
@@ -139,7 +140,7 @@ export default function ProjectsPage() {
     }
   };
 
-  if (loading || !user) return null;
+  if (loading || !user) return <PageSkeleton variant="grid" />;
 
   return (
     <div className="min-h-screen bg-background p-8 lg:p-12 pt-24 lg:pt-32 relative">

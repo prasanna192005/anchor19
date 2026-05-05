@@ -41,6 +41,7 @@ export default function Navbar({
   const pathname = usePathname();
   const { user, logOut } = useAuth();
   const [isHovered, setIsHovered] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   if (!user) return null;
 
@@ -132,9 +133,15 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* User / Authentication Cluster */}
-      <div className={cn("mt-auto px-4 py-8 border-t border-zinc-900/50", isCollapsed && "px-0 flex justify-center")}>
-        <div className="px-2 flex items-center gap-4 group cursor-pointer" onClick={logOut}>
+      <div 
+        className={cn("mt-auto px-4 py-8 border-t border-zinc-900/50 relative", isCollapsed && "px-0 flex justify-center")}
+        onMouseLeave={() => setShowLogoutConfirm(false)}
+      >
+        <div 
+          className="px-2 flex items-center gap-4 group cursor-pointer" 
+          onClick={() => setShowLogoutConfirm(true)}
+          onMouseEnter={() => setShowLogoutConfirm(true)}
+        >
           <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0 bg-zinc-900 flex items-center justify-center transition-all group-hover:border-zinc-700 shadow-soft">
             {user.photoURL ? (
               <img 
@@ -156,6 +163,34 @@ export default function Navbar({
             </p>
           </div>
         </div>
+
+        {/* Logout Confirmation Overlay */}
+        {showLogoutConfirm && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className={cn(
+              "absolute bottom-full left-4 right-4 mb-2 bg-zinc-900 border border-zinc-800 p-4 rounded-2xl shadow-2xl z-50",
+              isCollapsed && "left-full ml-2 bottom-8 w-48"
+            )}
+          >
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Confirm Termination?</p>
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={logOut}
+                className="w-full py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all border border-red-500/20"
+              >
+                Yes, Terminate
+              </button>
+              <button 
+                onClick={() => setShowLogoutConfirm(false)}
+                className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all border border-zinc-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
       </div>
     </nav>
   );
