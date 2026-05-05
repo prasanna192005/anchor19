@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState } from "react";
 
 interface ResourceRef {
   id: string;
-  type: "link" | "drive";
+  type: "link" | "drive" | "note";
   title: string;
 }
 

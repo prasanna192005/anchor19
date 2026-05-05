@@ -20,7 +20,8 @@ import {
   FileText,
   Presentation,
   FolderOpen,
-  RotateCcw
+  RotateCcw,
+  StickyNote
 } from "lucide-react";
 import { 
   collection, 
@@ -62,6 +63,7 @@ export default function ProjectDetailsPage() {
   const [project, setProject] = useState<any>(null);
   const [links, setLinks] = useState<any[]>([]);
   const [driveItems, setDriveItems] = useState<any[]>([]);
+  const [notesItems, setNotesItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredResource, setHoveredResource] = useState<any>(null);
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null); // "vault" | "drive"
@@ -84,7 +86,7 @@ export default function ProjectDetailsPage() {
   const detachResource = async (resource: any) => {
      if (!user || !resource) return;
      try {
-       const collectionName = resource.type === "drive" ? "drive" : "links";
+       const collectionName = resource.type === "drive" ? "drive" : resource.type === "note" ? "notes" : "links";
        await updateDoc(doc(db, `users/${user.uid}/${collectionName}`, resource.id), { projectId: null });
        showToast("Resource Detached", "info");
      } catch (e) {
@@ -95,10 +97,13 @@ export default function ProjectDetailsPage() {
   const handleLinkResource = async () => {
     if (!user || !activeRef || !params.id) return;
     try {
-      const collectionName = activeRef.type === "link" ? "links" : "drive";
-      await updateDoc(doc(db, `users/${user.uid}/${collectionName}`, activeRef.id), {
-        projectId: params.id
-      });
+      const collectionName = activeRef.type === "link" ? "links" : activeRef.type === "note" ? "notes" : "drive";
+      const updateData: any = { projectId: params.id };
+      if (activeRef.type === "note" && project) updateData.projectTag = project.name;
+      else if (activeRef.type === "drive" && project) updateData.projectTag = project.name.toUpperCase();
+      else if (activeRef.type === "link" && project) updateData.category = project.name;
+
+      await updateDoc(doc(db, `users/${user.uid}/${collectionName}`, activeRef.id), updateData);
       showToast(`${activeRef.title} linked to project`, "success");
       clearRef();
     } catch (e) {
@@ -106,18 +111,18 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const onDragStart = (e: React.DragEvent, item: any, source: "vault" | "drive") => {
+  const onDragStart = (e: React.DragEvent, item: any, source: "vault" | "drive" | "notes") => {
     e.dataTransfer.setData("application/json", JSON.stringify({ item, source }));
     e.dataTransfer.effectAllowed = "move";
   };
 
-  const onDragOver = (e: React.DragEvent, target: "vault" | "drive") => {
+  const onDragOver = (e: React.DragEvent, target: "vault" | "drive" | "notes") => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move"; // Explicitly set the cursor to 'move'
     setDragOverTarget(target);
   };
 
-  const onDrop = async (e: React.DragEvent, target: "vault" | "drive") => {
+  const onDrop = async (e: React.DragEvent, target: "vault" | "drive" | "notes") => {
     e.preventDefault();
     setDragOverTarget(null);
     if (!user) return;
@@ -129,22 +134,41 @@ export default function ProjectDetailsPage() {
 
       if (source === target) return; // same collection
 
-      const sourceColl = source === "vault" ? "links" : "drive";
-      const targetColl = target === "vault" ? "links" : "drive";
+      const sourceColl = source === "vault" ? "links" : source === "drive" ? "drive" : "notes";
+      const targetColl = target === "vault" ? "links" : target === "drive" ? "drive" : "notes";
 
       // 1. Create in Target
-      const newDocData: any = {
-        title: item.title,
-        url: item.url,
-        projectId: params.id,
-        createdAt: serverTimestamp(),
-      };
-
-      if (target === "drive") {
-        newDocData.projectTag = project?.name?.toUpperCase() || "GENERAL";
-        newDocData.type = "Link"; // Mark as Link when coming from Vault
+      let newDocData: any = {};
+      
+      if (target === "notes") {
+         // Create a note from a link/drive item
+         const itemUrl = item.url || "";
+         const itemTitle = item.title || "Untitled";
+         newDocData = {
+           content: `[${itemTitle}](${itemUrl})\n`,
+           projectId: params.id,
+           projectTag: project?.name || "General",
+           createdAt: serverTimestamp(),
+           updatedAt: serverTimestamp(),
+         };
       } else {
-        newDocData.category = project?.name || "General";
+         // Create a link/drive item from a note or another link/drive item
+         const title = source === "notes" ? (item.content?.split('\n')[0].replace(/^#+\s*/, '').substring(0, 40) || "Untitled Note") : item.title;
+         const url = source === "notes" ? `${window.location.origin}/notes/${item.id}` : item.url;
+         
+         newDocData = {
+           title,
+           url,
+           projectId: params.id,
+           createdAt: serverTimestamp(),
+         };
+
+         if (target === "drive") {
+           newDocData.projectTag = project?.name?.toUpperCase() || "GENERAL";
+           newDocData.type = "Link"; // Mark as Link
+         } else {
+           newDocData.category = project?.name || "General";
+         }
       }
 
       await addDoc(collection(db, `users/${user.uid}/${targetColl}`), newDocData);
@@ -152,7 +176,7 @@ export default function ProjectDetailsPage() {
       // 2. Delete from Source
       await deleteDoc(doc(db, `users/${user.uid}/${sourceColl}`, item.id));
 
-      showToast(`Moved to ${target === "vault" ? "Vault" : "Drive"}`, "success");
+      showToast(`Moved to ${target === "vault" ? "Vault" : target === "drive" ? "Drive" : "Knowledge Nodes"}`, "success");
     } catch (error) {
       console.error("Drop failed:", error);
       showToast("Transfer Failed", "error");
@@ -182,7 +206,10 @@ export default function ProjectDetailsPage() {
       const dq = query(collection(db, `users/${user.uid}/drive`), where("projectId", "==", params.id));
       const unsubDrive = onSnapshot(dq, (s) => setDriveItems(s.docs.map(d => ({ id: d.id, ...d.data() }))));
 
-      return () => { unsubProj(); unsubLinks(); unsubDrive(); };
+      const nq = query(collection(db, `users/${user.uid}/notes`), where("projectId", "==", params.id));
+      const unsubNotes = onSnapshot(nq, (s) => setNotesItems(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+
+      return () => { unsubProj(); unsubLinks(); unsubDrive(); unsubNotes(); };
     }
   }, [user, params.id, router]);
 
@@ -221,7 +248,7 @@ export default function ProjectDetailsPage() {
            <div className="flex gap-4">
              <div className="glass-card px-8 py-6 rounded-3xl border border-zinc-800 flex flex-col justify-between min-w-[160px]">
                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Resources</span>
-                <span className="text-4xl font-black text-white tabular-nums">{links.length + driveItems.length}</span>
+                <span className="text-4xl font-black text-white tabular-nums">{links.length + driveItems.length + notesItems.length}</span>
              </div>
              <div className="glass-card px-8 py-6 rounded-3xl border border-zinc-800 flex flex-col justify-between min-w-[160px]">
                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hierarchy</span>
@@ -244,7 +271,7 @@ export default function ProjectDetailsPage() {
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-glow">
-                        {activeRef.type === "link" ? <LinkIcon size={20} /> : <HardDrive size={20} />}
+                        {activeRef.type === "link" ? <LinkIcon size={20} /> : activeRef.type === "note" ? <StickyNote size={20} /> : <HardDrive size={20} />}
                      </div>
                      <div className="flex flex-col">
                         <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Ready_to_Link</span>
@@ -273,7 +300,7 @@ export default function ProjectDetailsPage() {
       </AnimatePresence>
 
       {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 relative z-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 relative z-10">
         
         {/* Linked Vault Resources */}
         <div className="space-y-6">
@@ -319,7 +346,7 @@ export default function ProjectDetailsPage() {
                   <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center group-hover:bg-primary/5 transition-all">
                     <img src={`https://www.google.com/s2/favicons?sz=64&domain=${new URL(link.url).hostname}`} alt="" className="w-6 h-6 transition-all" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <h3 className="text-base font-bold text-white group-hover:text-primary transition-colors truncate">{link.title || "Unnamed Link"}</h3>
                     <p className="text-[10px] font-mono text-zinc-600 truncate">{new URL(link.url).hostname}</p>
                   </div>
@@ -387,7 +414,7 @@ export default function ProjectDetailsPage() {
                       style: { color: (typeStyles[file.type as keyof typeof typeStyles] || typeStyles.Doc).color } 
                     })}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <h3 className="text-base font-bold text-white group-hover:text-secondary transition-colors truncate">{file.title || "Unnamed File"}</h3>
                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Project_Resource</p>
                   </div>
@@ -397,6 +424,66 @@ export default function ProjectDetailsPage() {
               {driveItems.length === 0 && (
                 <div className="h-40 glass-card rounded-2xl flex items-center justify-center border-dashed border-zinc-900 border-2">
                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-800">no_drive_references</p>
+                </div>
+              )}
+           </div>
+        </div>
+
+        {/* Linked Knowledge Nodes */}
+        <div className="space-y-6">
+           <div className="flex items-center justify-between px-2">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 flex items-center gap-2">
+                 <StickyNote size={14} className="text-accent" /> _knowledge_nodes
+              </h2>
+              <span className="text-[10px] font-bold text-zinc-700">{notesItems.length} objects</span>
+           </div>
+
+            <div 
+              className={cn("flex flex-col gap-3 p-4 rounded-3xl transition-all border-2 border-transparent relative", 
+                dragOverTarget === "notes" && "bg-accent/5 border-accent/30 scale-[1.01]"
+              )}
+              onDragOver={(e) => onDragOver(e, "notes")}
+              onDrop={(e) => onDrop(e, "notes")}
+              onDragLeave={() => setDragOverTarget(null)}
+            >
+              {notesItems.map((note, i) => (
+                <motion.div 
+                  key={note.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                  draggable={true}
+                  onDragStartCapture={(e: any) => onDragStart(e, note, "notes")}
+                  onMouseEnter={() => setHoveredResource({ ...note, type: "note" })}
+                  onMouseLeave={() => setHoveredResource(null)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    showMenu(e.clientX, e.clientY, [
+                      { label: "Copy Deep Link", icon: <CopyIcon size={14} />, onClick: () => {
+                         navigator.clipboard.writeText(`${window.location.origin}/notes/${note.id}`);
+                         showToast("Permanent Link Copied", "success");
+                      }},
+                      { label: "Detach from Project", icon: <Trash2 size={14} />, variant: "destructive", onClick: async () => {
+                         await updateDoc(doc(db, `users/${user.uid}/notes`, note.id), { projectId: null });
+                         showToast("Record Detached", "info");
+                      }}
+                    ], note.projectTag || "Untitled Node");
+                  }}
+                  onClick={() => router.push(`/notes/${note.id}`)}
+                  className="glass-card flex items-center gap-6 p-5 rounded-2xl border border-zinc-800/50 hover:border-accent/30 group transition-all cursor-grab active:cursor-grabbing"
+                >
+                  <div className="w-12 h-12 rounded-xl border border-accent/20 bg-accent/5 flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-all">
+                    <StickyNote size={20} className="text-accent" />
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                    <h3 className="text-base font-bold text-white group-hover:text-accent transition-colors truncate">
+                       {note.content?.split('\n')[0].replace(/^#+\s*/, '') || "Untitled Thought"}
+                    </h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Knowledge_Node</p>
+                  </div>
+                  <ArrowUpRight size={18} className="text-zinc-700 group-hover:text-white transition-all opacity-0 group-hover:opacity-100" />
+                </motion.div>
+              ))}
+              {notesItems.length === 0 && (
+                <div className="h-40 glass-card rounded-2xl flex items-center justify-center border-dashed border-zinc-900 border-2">
+                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-800">no_knowledge_nodes</p>
                 </div>
               )}
            </div>

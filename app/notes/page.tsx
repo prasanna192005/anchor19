@@ -16,7 +16,8 @@ import {
   PlusCircle,
   Hash,
   Copy,
-  Edit2
+  Edit2,
+  Folder
 } from "lucide-react";
 import {
   collection,
@@ -34,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/context/ToastContext";
 import { useKeyboardActions } from "@/hooks/useKeyboardActions";
 import { useContextMenu } from "@/context/ContextMenuContext";
+import { useLinking } from "@/context/LinkingContext";
 
 
 const stripFormatting = (text: string) => {
@@ -55,11 +57,14 @@ export default function NotesPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { showMenu, hideMenu } = useContextMenu();
+  const { copyRef } = useLinking();
 
   const [notes, setNotes] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const { showToast } = useToast();
   const [hoveredNote, setHoveredNote] = useState<any>(null);
+  const [selectedNoteForMove, setSelectedNoteForMove] = useState<any>(null);
 
   const deleteNoteFunc = async (id: string) => {
     if (!user) return;
@@ -93,11 +98,31 @@ export default function NotesPage() {
       const unsubscribe = onSnapshot(q, (snapshot) => {
         setNotes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
-      return () => unsubscribe();
+
+      const pq = query(collection(db, `users/${user.uid}/projects`));
+      const unsubProj = onSnapshot(pq, (snapshot) => {
+        setProjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+
+      return () => { unsubscribe(); unsubProj(); };
     }
   }, [user]);
 
 
+
+  const handleMoveNote = async (projectId: string, projectName: string) => {
+    if (!user || !selectedNoteForMove) return;
+    try {
+      await updateDoc(doc(db, `users/${user.uid}/notes`, selectedNoteForMove.id), {
+        projectId: projectId,
+        projectTag: projectName
+      });
+      showToast("Knowledge node mapped", "success");
+      setSelectedNoteForMove(null);
+    } catch (e) {
+      showToast("Mapping failed", "error");
+    }
+  };
 
   const deleteNote = async (id: string) => {
     if (!user) return;
@@ -130,6 +155,9 @@ export default function NotesPage() {
           router.push(`/notes/${note.id}`);
         }
       },
+      { label: "Move to Project", icon: <Folder size={14} />, onClick: () => {
+         setSelectedNoteForMove(note);
+      }},
       { label: "Duplicate Thought", icon: <Copy size={14} />, onClick: () => duplicateNote(note) },
       { label: "Purge Record", icon: <Trash2 size={14} />, onClick: () => deleteNoteFunc(note.id), variant: "destructive" },
     ], note.projectTag || "General Thought");
@@ -240,7 +268,55 @@ export default function NotesPage() {
         )}
       </div>
 
+      {/* Move to Project Modal */}
+      <AnimatePresence>
+        {selectedNoteForMove && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3 text-primary">
+                  <Folder size={20} />
+                  <h2 className="text-xl font-bold text-white tracking-tight">Map to Project</h2>
+                </div>
+                <button
+                  onClick={() => setSelectedNoteForMove(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-900 text-zinc-400 hover:text-white transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                {projects.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleMoveNote(p.id, p.name)}
+                    className="w-full flex flex-col items-start gap-1 p-4 rounded-2xl border border-zinc-800 hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                  >
+                    <span className="text-white font-bold tracking-tight">{p.name}</span>
+                    {p.description && (
+                      <span className="text-[10px] text-zinc-500 font-medium truncate w-full text-left">{p.description}</span>
+                    )}
+                  </button>
+                ))}
+                {projects.length === 0 && (
+                  <p className="text-sm text-zinc-500 text-center py-6">No projects available.</p>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

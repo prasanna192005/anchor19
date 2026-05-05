@@ -46,7 +46,7 @@ const detectContext = (q: string): string[] => {
   if (/^(todo|task|create task)/.test(lower)) return ["Tasks"];
   if (/^(del|delete|remove)/.test(lower)) return ["Tasks", "Vault", "Drive", "Projects"];
   if (/^(link|vault|save)/.test(lower)) return ["Vault"];
-  if (/^(move|rename)/.test(lower)) return ["Tasks", "Projects", "Drive"];
+  if (/^(move|rename)/.test(lower)) return ["Tasks", "Projects", "Drive", "Knowledge", "Vault"];
   if (/^(note)/.test(lower)) return ["Knowledge"];
   if (/^drive/.test(lower)) return ["Drive"];
   return [];
@@ -178,7 +178,7 @@ export default function CommandPalette() {
           break;
         }
         case "rename": {
-          const renField = act.collection === "projects" ? "name" : "title";
+          const renField = act.collection === "projects" ? "name" : act.collection === "notes" ? "content" : "title";
           const oldSnap = await getDoc(doc(db, `users/${user.uid}/${act.collection}`, act.docId));
           const oldValue = oldSnap.exists() ? (oldSnap.data()[renField] ?? "") : "";
           await updateDoc(doc(db, `users/${user.uid}/${act.collection}`, act.docId), { [renField]: act.newName, updatedAt: serverTimestamp() });
@@ -194,7 +194,7 @@ export default function CommandPalette() {
         }
         case "move": {
           const isDestProject = act.destCategory === "Projects";
-          const moveField = act.collection === "drive" ? "projectTag" : "category";
+          const moveField = (act.collection === "drive" || act.collection === "notes") ? "projectTag" : "category";
           const oldSnap = await getDoc(doc(db, `users/${user.uid}/${act.collection}`, act.docId));
           const oldData = oldSnap.exists() ? oldSnap.data() : {};
           const oldValue = oldData[moveField] ?? "";
