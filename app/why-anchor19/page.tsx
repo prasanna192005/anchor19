@@ -55,6 +55,23 @@ export default function WhyAnchor19() {
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [cleaningProgress, setCleaningProgress] = useState(0);
+
+  const startCleaning = () => {
+    setIsCleaning(true);
+    setCleaningProgress(0);
+    const interval = setInterval(() => {
+      setCleaningProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setTimeout(() => setIsCleaning(false), 1000);
+          return 100;
+        }
+        return prev + 5;
+      });
+    }, 50);
+  };
 
   if (!mounted) return null;
 
@@ -66,8 +83,9 @@ export default function WhyAnchor19() {
 
       {/* Decorative Grids */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(174,213,0,0.03)_0%,transparent_70%)]" />
-        <div className="absolute inset-0 bg-mesh opacity-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(174,213,0,0.05)_0%,transparent_70%)]" />
+        <div className="absolute inset-0 bg-mesh opacity-20" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]" />
       </div>
 
       <div className="relative z-10">
@@ -153,12 +171,53 @@ export default function WhyAnchor19() {
           </div>
         </section>
 
+        {/* The Noise Cleaner (Interactive Fun) */}
+        <section className="py-20 px-8 flex justify-center">
+          <div className="w-full max-w-4xl p-1 px-1 rounded-3xl bg-gradient-to-br from-primary/20 via-zinc-900 to-accent/20">
+            <div className="bg-[#080808] rounded-[1.4rem] p-12 flex flex-col items-center text-center gap-8 relative overflow-hidden">
+               <AnimatePresence>
+                 {isCleaning && (
+                   <motion.div 
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
+                     className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-4"
+                   >
+                     <div className="text-4xl font-black text-primary italic tracking-widest uppercase">PURGING_NOISE...</div>
+                     <div className="w-64 h-2 bg-zinc-900 rounded-full overflow-hidden border border-primary/20">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${cleaningProgress}%` }}
+                          className="h-full bg-primary shadow-[0_0_15px_rgba(174,213,0,0.5)]"
+                        />
+                     </div>
+                     <div className="text-[10px] font-mono font-bold text-primary/60">{cleaningProgress}% SYNCED</div>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+
+               <div className="space-y-4 relative z-10">
+                 <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter">Feeling the friction?</h3>
+                 <p className="text-zinc-500 max-w-md mx-auto">Click to simulate a system-wide focus purge and see how Anchor19 feels when it takes over.</p>
+               </div>
+
+               <button 
+                onClick={startCleaning}
+                disabled={isCleaning}
+                className="relative z-10 px-12 py-5 bg-zinc-950 border border-zinc-800 rounded-2xl group hover:border-primary/50 transition-all active:scale-95"
+               >
+                 <span className="text-sm font-black uppercase tracking-[0.3em] text-zinc-400 group-hover:text-primary transition-colors">INITIALIZE_FOCUS_PURGE</span>
+               </button>
+            </div>
+          </div>
+        </section>
+
         {/* Interactive Stats Banner */}
-        <section className="bg-zinc-900/50 border-y border-zinc-900 py-24 px-8 lg:px-24">
+        <section className="bg-zinc-900/30 border-y border-zinc-900/50 py-24 px-8 lg:px-24 backdrop-blur-sm">
            <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
               <StatCard label="Response_Time" value="<2ms" sub="ZERO LATENCY INPUT" />
-              <StatCard label="Project_Density" value="∞" sub="UNLIMITED CONTEXTS" />
               <StatCard label="Cognitive_Load" value="-80%" sub="REDUCED MENTAL DRAG" />
+              <StatCard label="Peak_Focus" value="4.2x" sub="PRODUCTIVITY MULTIPLIER" />
            </div>
         </section>
 
